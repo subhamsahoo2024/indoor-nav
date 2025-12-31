@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Map, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Map,
+  Loader2,
+  AlertCircle,
+  Trash2,
+  Upload,
+  X,
+  Image as ImageIcon,
+} from "lucide-react";
 import type { MapData } from "@/types/navigation";
 
 /**
@@ -20,6 +29,11 @@ export default function AdminPage() {
   const [newMapId, setNewMapId] = useState("");
   const [newMapName, setNewMapName] = useState("");
   const [newMapImageUrl, setNewMapImageUrl] = useState("");
+
+  // File upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   // Fetch all maps on mount
   useEffect(() => {
@@ -45,6 +59,50 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle file selection and upload
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    setIsUploading(true);
+    setSelectedFileName(file.name);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setNewMapImageUrl(result.data.url);
+      } else {
+        setUploadError(result.error || "Failed to upload file");
+        setSelectedFileName(null);
+        setNewMapImageUrl("");
+      }
+    } catch (err) {
+      setUploadError("Failed to upload file");
+      setSelectedFileName(null);
+      setNewMapImageUrl("");
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Clear selected file
+  const handleClearFile = () => {
+    setNewMapImageUrl("");
+    setSelectedFileName(null);
+    setUploadError(null);
   };
 
   const handleCreateMap = async (e: React.FormEvent) => {
@@ -113,6 +171,8 @@ export default function AdminPage() {
     setNewMapId("");
     setNewMapName("");
     setNewMapImageUrl("");
+    setSelectedFileName(null);
+    setUploadError(null);
   };
 
   return (
@@ -292,19 +352,80 @@ export default function AdminPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
+                    Map Image
                   </label>
-                  <input
-                    type="text"
-                    value={newMapImageUrl}
-                    onChange={(e) => setNewMapImageUrl(e.target.value)}
-                    placeholder="e.g., /maps/campus.png or https://..."
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Path to map image (local or URL)
-                  </p>
+
+                  {/* File Upload Area */}
+                  {!newMapImageUrl ? (
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        disabled={isUploading}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        id="map-image-upload"
+                      />
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                          isUploading
+                            ? "border-blue-300 bg-blue-50"
+                            : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"
+                        }`}
+                      >
+                        {isUploading ? (
+                          <div className="flex flex-col items-center">
+                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                            <span className="text-sm text-blue-600">
+                              Uploading {selectedFileName}...
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center">
+                            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-600">
+                              Click or drag to upload image
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">
+                              PNG, JPG, WebP up to 10MB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Preview uploaded image */
+                    <div className="relative border rounded-lg overflow-hidden">
+                      <div
+                        className="aspect-video bg-gray-100 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${newMapImageUrl})` }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={handleClearFile}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                          Remove
+                        </button>
+                      </div>
+                      <div className="p-2 bg-gray-50 border-t flex items-center gap-2 text-sm text-gray-600">
+                        <ImageIcon className="w-4 h-4" />
+                        <span className="truncate">
+                          {selectedFileName || newMapImageUrl}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Error */}
+                  {uploadError && (
+                    <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {uploadError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -320,7 +441,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isCreating}
+                    disabled={isCreating || isUploading || !newMapImageUrl}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
