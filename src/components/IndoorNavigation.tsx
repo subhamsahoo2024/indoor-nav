@@ -253,6 +253,32 @@ export default function IndoorNavigation({
   const [isAnimating, setIsAnimating] = useState(false);
   const animationRef = useRef<number | null>(null);
 
+  // Image dimensions for dynamic sizing
+  const [imageDimensions, setImageDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  // Load image to get natural dimensions
+  useEffect(() => {
+    if (!currentMapData?.imageUrl) {
+      setImageDimensions(null);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      setImageDimensions({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+    };
+    img.onerror = () => {
+      setImageDimensions(null);
+    };
+    img.src = currentMapData.imageUrl;
+  }, [currentMapData?.imageUrl]);
+
   // Current segment
   const currentSegment = useMemo(() => {
     if (!navigationResult?.segments) return null;
@@ -625,82 +651,91 @@ export default function IndoorNavigation({
         </div>
       </div>
 
-      {/* Map Container */}
-      <div className="flex-1 relative" ref={containerRef}>
-        {/* Map Image (placeholder gradient) */}
+      {/* Map Container - Scrollable */}
+      <div className="flex-1 overflow-auto bg-gray-200">
         <div
-          className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300"
+          ref={containerRef}
+          className="relative bg-gradient-to-br from-slate-200 to-slate-300"
           style={{
+            minWidth: imageDimensions
+              ? Math.max(imageDimensions.width, 800)
+              : 800,
+            minHeight: imageDimensions
+              ? Math.max(imageDimensions.height, 600)
+              : 600,
+            width: imageDimensions ? imageDimensions.width : "100%",
+            height: imageDimensions ? imageDimensions.height : "100%",
             backgroundImage: currentMapData?.imageUrl
               ? `url(${currentMapData.imageUrl})`
               : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "top left",
           }}
-        />
+        >
+          {/* SVG Overlay */}
+          {isReady && (
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+              preserveAspectRatio="none"
+            >
+              {/* Defs for gradients */}
+              <defs>
+                <radialGradient id="walkerGlow">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                </radialGradient>
+              </defs>
 
-        {/* SVG Overlay */}
-        {isReady && (
-          <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-            preserveAspectRatio="none"
-          >
-            {/* Defs for gradients */}
-            <defs>
-              <radialGradient id="walkerGlow">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-              </radialGradient>
-            </defs>
+              {/* Path line */}
+              {pathPixelCoords.length >= 2 && (
+                <PathLine points={pathPixelCoords} isActive={isAnimating} />
+              )}
 
-            {/* Path line */}
-            {pathPixelCoords.length >= 2 && (
-              <PathLine points={pathPixelCoords} isActive={isAnimating} />
-            )}
+              {/* Nodes */}
+              {nodesToRender.map((node) => {
+                const pixelCoord = toPixels(node.x, node.y);
+                const isOnPath = pathNodeIdSet.has(node.id);
+                const isStart =
+                  currentSegmentIndex === 0 &&
+                  node.id === currentSegment?.pathNodeIds[0];
+                const isEnd =
+                  currentSegmentIndex ===
+                    (navigationResult?.segments.length ?? 1) - 1 &&
+                  node.id ===
+                    currentSegment?.pathNodeIds[
+                      currentSegment.pathNodeIds.length - 1
+                    ];
 
-            {/* Nodes */}
-            {nodesToRender.map((node) => {
-              const pixelCoord = toPixels(node.x, node.y);
-              const isOnPath = pathNodeIdSet.has(node.id);
-              const isStart =
-                currentSegmentIndex === 0 &&
-                node.id === currentSegment?.pathNodeIds[0];
-              const isEnd =
-                currentSegmentIndex ===
-                  (navigationResult?.segments.length ?? 1) - 1 &&
-                node.id ===
-                  currentSegment?.pathNodeIds[
-                    currentSegment.pathNodeIds.length - 1
-                  ];
+                return (
+                  <MapNode
+                    key={node.id}
+                    node={node}
+                    pixelCoord={pixelCoord}
+                    isOnPath={isOnPath}
+                    isStart={isStart}
+                    isEnd={isEnd}
+                    isGateway={node.type === "GATEWAY"}
+                    showLabel={showLabels && isOnPath}
+                  />
+                );
+              })}
 
-              return (
-                <MapNode
-                  key={node.id}
-                  node={node}
-                  pixelCoord={pixelCoord}
-                  isOnPath={isOnPath}
-                  isStart={isStart}
-                  isEnd={isEnd}
-                  isGateway={node.type === "GATEWAY"}
-                  showLabel={showLabels && isOnPath}
+              {/* Ghost Walker */}
+              {pathPixelCoords.length > 0 && status === "NAVIGATING" && (
+                <GhostWalker
+                  position={walkerPosition}
+                  angle={walkerAngle}
+                  isMoving={isAnimating}
                 />
-              );
-            })}
+              )}
+            </svg>
+          )}
 
-            {/* Ghost Walker */}
-            {pathPixelCoords.length > 0 && status === "NAVIGATING" && (
-              <GhostWalker
-                position={walkerPosition}
-                angle={walkerAngle}
-                isMoving={isAnimating}
-              />
-            )}
-          </svg>
-        )}
-
-        {/* Overlay UI */}
-        <AnimatePresence>{renderOverlay()}</AnimatePresence>
+          {/* Overlay UI */}
+          <AnimatePresence>{renderOverlay()}</AnimatePresence>
+        </div>
       </div>
 
       {/* Progress indicator */}

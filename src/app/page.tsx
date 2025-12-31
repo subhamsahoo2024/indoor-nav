@@ -10,8 +10,8 @@ export default function Home() {
   // Route: campus_main -> block_a_lobby -> floor_1
   const [startMapId] = useState("citarmap");
   const [startNodeId] = useState("node_1767198436753_eglpb0yer");
-  const [endMapId] = useState("fivehundreds");
-  const [endNodeId] = useState("node_1767198959579_6a6brwe7p");
+  const [endMapId] = useState("sixhundreds");
+  const [endNodeId] = useState("node_1767199230748_thrwgfxnv");
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-8 bg-gray-100">
@@ -20,10 +20,8 @@ export default function Home() {
         <p>Route: Main Gate → Dean&apos;s Office</p>
       </div>
 
-      {/* CRITICAL: The parent container MUST have a defined height/width 
-         or the absolute positioning of the map will collapse to 0px.
-      */}
-      <div className="relative w-full h-[600px] border-2 border-gray-300 rounded-xl overflow-hidden shadow-2xl bg-white">
+      {/* Map display container - responsive height based on viewport */}
+      <div className="relative w-full h-[80vh] min-h-[500px] max-h-[900px] border-2 border-gray-300 rounded-xl overflow-hidden shadow-2xl bg-white">
         <IndoorNavigation
           startMapId={startMapId}
           startNodeId={startNodeId}
