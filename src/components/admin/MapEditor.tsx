@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   Save,
   Plus,
@@ -15,7 +15,7 @@ import {
   Redo,
 } from "lucide-react";
 import type { MapData, Node, Edge, NodeType } from "@/types/navigation";
-import { useMapDimensions } from "@/hooks/useMapDimensions";
+import { useImageDimensions } from "@/hooks/useImageDimensions";
 
 // ============================================================================
 // Types
@@ -70,8 +70,44 @@ function getNodeIcon(type: NodeType) {
 export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
-  const { dimensions, isReady, toPixels, toPercent } =
-    useMapDimensions(containerRef);
+
+  // Use the image dimensions hook for accurate coordinate conversion
+  const { imageBounds, isReady, toPixels, toPercent } = useImageDimensions(
+    containerRef,
+    mapData.imageUrl,
+    "top-left" // background-position: top left
+  );
+
+  // Helper to convert percentage to SVG-local coordinates
+  const toSvgCoords = useCallback(
+    (percentX: number, percentY: number) => {
+      return {
+        x: (percentX / 100) * imageBounds.width,
+        y: (percentY / 100) * imageBounds.height,
+      };
+    },
+    [imageBounds.width, imageBounds.height]
+  );
+
+  // Helper to convert click position to percentage
+  const clickToPercent = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!containerRef.current) return { x: 0, y: 0 };
+      const rect = containerRef.current.getBoundingClientRect();
+      const pixelX = clientX - rect.left - imageBounds.offsetX;
+      const pixelY = clientY - rect.top - imageBounds.offsetY;
+
+      if (imageBounds.width === 0 || imageBounds.height === 0) {
+        return { x: 0, y: 0 };
+      }
+
+      return {
+        x: (pixelX / imageBounds.width) * 100,
+        y: (pixelY / imageBounds.height) * 100,
+      };
+    },
+    [imageBounds]
+  );
 
   // Editor state
   const [nodes, setNodes] = useState<Node[]>(mapData.nodes || []);
@@ -204,10 +240,8 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
     (e: React.MouseEvent) => {
       if (mode !== "add" || !containerRef.current) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const pixelX = e.clientX - rect.left;
-      const pixelY = e.clientY - rect.top;
-      const { x: percentX, y: percentY } = toPercent(pixelX, pixelY);
+      // Use clickToPercent to account for image offset
+      const { x: percentX, y: percentY } = clickToPercent(e.clientX, e.clientY);
 
       const newNode: Node = {
         id: generateNodeId(),
@@ -224,7 +258,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
       setTimeout(() => pushHistory(), 0);
     },
-    [mode, toPercent, nodes.length, pushHistory]
+    [mode, clickToPercent, nodes.length, pushHistory]
   );
 
   // Handle node click
@@ -315,10 +349,8 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
     (e: React.MouseEvent) => {
       if (!isDragging || !dragNodeId || !containerRef.current) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const pixelX = e.clientX - rect.left;
-      const pixelY = e.clientY - rect.top;
-      const { x: percentX, y: percentY } = toPercent(pixelX, pixelY);
+      // Use clickToPercent to account for image offset
+      const { x: percentX, y: percentY } = clickToPercent(e.clientX, e.clientY);
 
       // Clamp to 0-100
       const clampedX = Math.max(0, Math.min(100, percentX));
@@ -336,7 +368,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
         )
       );
     },
-    [isDragging, dragNodeId, toPercent]
+    [isDragging, dragNodeId, clickToPercent]
   );
 
   // Handle mouse up to stop dragging
@@ -572,9 +604,18 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
             </div>
           )}
 
-          {/* SVG Overlay */}
+          {/* SVG Overlay - positioned over the actual rendered image */}
           {isReady && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            <svg
+              className="absolute pointer-events-none"
+              style={{
+                left: imageBounds.offsetX,
+                top: imageBounds.offsetY,
+                width: imageBounds.width,
+                height: imageBounds.height,
+              }}
+              viewBox={`0 0 ${imageBounds.width} ${imageBounds.height}`}
+            >
               {/* Edges */}
               {Object.entries(adjacencyList).map(([fromId, edges]) => {
                 const fromNode = nodes.find((n) => n.id === fromId);
@@ -584,9 +625,9 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
                   const toNode = nodes.find((n) => n.id === edge.targetNodeId);
                   if (!toNode) return null;
 
-                  const from = toPixels(fromNode.x, fromNode.y);
+                  const from = toSvgCoords(fromNode.x, fromNode.y);
 
-                  const to = toPixels(toNode.x, toNode.y);
+                  const to = toSvgCoords(toNode.x, toNode.y);
 
                   // Only draw edge once (from smaller to larger ID)
                   if (fromId > edge.targetNodeId) return null;
@@ -611,29 +652,27 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
               })}
 
               {/* Connection preview line */}
-              {connectSourceId && (
-                <line
-                  x1={
-                    toPixels(
-                      nodes.find((n) => n.id === connectSourceId)?.x || 0,
-                      0
-                    ).x
-                  }
-                  y1={
-                    toPixels(
-                      0,
-                      nodes.find((n) => n.id === connectSourceId)?.y || 0
-                    ).y
-                  }
-                  x2={dimensions.width / 2}
-                  y2={dimensions.height / 2}
-                  stroke="#9333ea"
-                  strokeWidth={2}
-                  strokeDasharray="5,5"
-                  opacity={0.5}
-                  className="pointer-events-none"
-                />
-              )}
+              {connectSourceId &&
+                (() => {
+                  const sourceNode = nodes.find(
+                    (n) => n.id === connectSourceId
+                  );
+                  if (!sourceNode) return null;
+                  const sourcePos = toSvgCoords(sourceNode.x, sourceNode.y);
+                  return (
+                    <line
+                      x1={sourcePos.x}
+                      y1={sourcePos.y}
+                      x2={imageBounds.width / 2}
+                      y2={imageBounds.height / 2}
+                      stroke="#9333ea"
+                      strokeWidth={2}
+                      strokeDasharray="5,5"
+                      opacity={0.5}
+                      className="pointer-events-none"
+                    />
+                  );
+                })()}
             </svg>
           )}
 

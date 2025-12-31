@@ -7,12 +7,12 @@ import type { NavigationSegment, NavigationResult } from "@/lib/pathfinder";
 import { generateNavigationPath } from "@/lib/pathfinder";
 import { getMap } from "@/lib/mapService";
 import {
-  useMapDimensions,
+  useImageDimensions,
   type PixelCoordinate,
   calculatePathLength,
   getPointAtProgress,
   calculateAngle,
-} from "@/hooks/useMapDimensions";
+} from "@/hooks/useImageDimensions";
 
 // ============================================================================
 // Types
@@ -237,9 +237,6 @@ export default function IndoorNavigation({
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Dimension hook
-  const { dimensions, isReady, toPixels } = useMapDimensions(containerRef);
-
   // Navigation state
   const [navigationResult, setNavigationResult] =
     useState<NavigationResult | null>(null);
@@ -253,31 +250,13 @@ export default function IndoorNavigation({
   const [isAnimating, setIsAnimating] = useState(false);
   const animationRef = useRef<number | null>(null);
 
-  // Image dimensions for dynamic sizing
-  const [imageDimensions, setImageDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
-
-  // Load image to get natural dimensions
-  useEffect(() => {
-    if (!currentMapData?.imageUrl) {
-      setImageDimensions(null);
-      return;
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      setImageDimensions({
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-      });
-    };
-    img.onerror = () => {
-      setImageDimensions(null);
-    };
-    img.src = currentMapData.imageUrl;
-  }, [currentMapData?.imageUrl]);
+  // Use the new image dimensions hook - calculates ACTUAL rendered image size
+  // This fixes the "drifting coordinates" bug when image aspect ratio differs from container
+  const { imageBounds, isReady, toPixels } = useImageDimensions(
+    containerRef,
+    currentMapData?.imageUrl,
+    "top-left" // Our background-position is top-left
+  );
 
   // Current segment
   const currentSegment = useMemo(() => {
@@ -294,11 +273,23 @@ export default function IndoorNavigation({
       .filter((n): n is Node => n !== undefined);
   }, [currentMapData, currentSegment]);
 
-  // Path pixel coordinates
+  // Helper: Convert percentage to SVG-local coordinates (not container-relative)
+  // Since our SVG viewBox matches the rendered image size, we convert directly
+  const toSvgCoords = useCallback(
+    (percentX: number, percentY: number): PixelCoordinate => {
+      return {
+        x: (percentX / 100) * imageBounds.width,
+        y: (percentY / 100) * imageBounds.height,
+      };
+    },
+    [imageBounds.width, imageBounds.height]
+  );
+
+  // Path pixel coordinates (relative to SVG viewBox)
   const pathPixelCoords = useMemo(() => {
-    if (!isReady) return [];
-    return pathNodes.map((node) => toPixels(node.x, node.y));
-  }, [pathNodes, toPixels, isReady]);
+    if (!isReady || imageBounds.width === 0) return [];
+    return pathNodes.map((node) => toSvgCoords(node.x, node.y));
+  }, [pathNodes, toSvgCoords, isReady, imageBounds.width]);
 
   // Walker position and angle
   const walkerPosition = useMemo(() => {
@@ -657,14 +648,11 @@ export default function IndoorNavigation({
           ref={containerRef}
           className="relative bg-gradient-to-br from-slate-200 to-slate-300"
           style={{
-            minWidth: imageDimensions
-              ? Math.max(imageDimensions.width, 800)
-              : 800,
-            minHeight: imageDimensions
-              ? Math.max(imageDimensions.height, 600)
-              : 600,
-            width: imageDimensions ? imageDimensions.width : "100%",
-            height: imageDimensions ? imageDimensions.height : "100%",
+            // Use container dimensions from imageBounds for proper sizing
+            minWidth: Math.max(imageBounds.containerWidth || 800, 800),
+            minHeight: Math.max(imageBounds.containerHeight || 600, 600),
+            width: imageBounds.containerWidth || "100%",
+            height: imageBounds.containerHeight || "100%",
             backgroundImage: currentMapData?.imageUrl
               ? `url(${currentMapData.imageUrl})`
               : undefined,
@@ -673,11 +661,18 @@ export default function IndoorNavigation({
             backgroundPosition: "top left",
           }}
         >
-          {/* SVG Overlay */}
+          {/* SVG Overlay - positioned and sized to match ACTUAL rendered image */}
           {isReady && (
             <svg
-              className="absolute inset-0 w-full h-full"
-              viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+              className="absolute pointer-events-none"
+              style={{
+                // Position overlay exactly where the image is rendered
+                left: imageBounds.offsetX,
+                top: imageBounds.offsetY,
+                width: imageBounds.width,
+                height: imageBounds.height,
+              }}
+              viewBox={`0 0 ${imageBounds.width} ${imageBounds.height}`}
               preserveAspectRatio="none"
             >
               {/* Defs for gradients */}
@@ -695,7 +690,8 @@ export default function IndoorNavigation({
 
               {/* Nodes */}
               {nodesToRender.map((node) => {
-                const pixelCoord = toPixels(node.x, node.y);
+                // Use toSvgCoords for SVG-local coordinates
+                const pixelCoord = toSvgCoords(node.x, node.y);
                 const isOnPath = pathNodeIdSet.has(node.id);
                 const isStart =
                   currentSegmentIndex === 0 &&
