@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { motion, useAnimation, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Gauge,
+  ChevronRight,
+} from "lucide-react";
 import type { MapData, Node } from "@/types/navigation";
-import type { NavigationSegment, NavigationResult } from "@/lib/pathfinder";
+import type { NavigationResult } from "@/lib/pathfinder";
 import { generateNavigationPath } from "@/lib/pathfinder";
 import { getMap } from "@/lib/mapService";
 import {
@@ -250,6 +257,13 @@ export default function IndoorNavigation({
   const [isAnimating, setIsAnimating] = useState(false);
   const animationRef = useRef<number | null>(null);
 
+  // Playback control state
+  const [isPaused, setIsPaused] = useState(false);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1); // 1x or 2x
+  const pausedProgressRef = useRef(0); // Store progress when paused
+  const startTimeRef = useRef<number | null>(null);
+  const baseDurationRef = useRef(0);
+
   // Use the new image dimensions hook - calculates ACTUAL rendered image size
   // This fixes the "drifting coordinates" bug when image aspect ratio differs from container
   const { imageBounds, isReady, toPixels } = useImageDimensions(
@@ -369,29 +383,39 @@ export default function IndoorNavigation({
 
   // Animation loop
   useEffect(() => {
-    if (status !== "NAVIGATING" || !isReady || pathPixelCoords.length < 2) {
+    if (status !== "NAVIGATING" || !isReady || pathPixelCoords.length < 2 || isPaused) {
       return;
     }
 
     setIsAnimating(true);
     const pathLength = calculatePathLength(pathPixelCoords);
     const baseDuration = pathLength / 100; // pixels per second
-    const duration = baseDuration / animationSpeed;
+    baseDurationRef.current = baseDuration;
+    const duration = baseDuration / (animationSpeed * speedMultiplier);
+    
+    // Calculate remaining duration based on paused progress
+    const startProgress = pausedProgressRef.current;
+    const remainingDuration = duration * (1 - startProgress);
 
     let startTime: number | null = null;
 
     function animate(timestamp: number) {
       if (startTime === null) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000;
-      const newProgress = Math.min(elapsed / duration, 1);
+      
+      // Calculate new progress from where we left off
+      const progressDelta = elapsed / remainingDuration * (1 - startProgress);
+      const newProgress = Math.min(startProgress + progressDelta, 1);
 
       setProgress(newProgress);
+      pausedProgressRef.current = newProgress;
 
       if (newProgress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
         // Animation complete - check for gateway
         setIsAnimating(false);
+        pausedProgressRef.current = 0;
         handleSegmentComplete();
       }
     }
@@ -403,7 +427,7 @@ export default function IndoorNavigation({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [status, isReady, pathPixelCoords, animationSpeed]);
+  }, [status, isReady, pathPixelCoords, animationSpeed, speedMultiplier, isPaused]);
 
   // ============================================================================
   // Handlers
@@ -453,6 +477,8 @@ export default function IndoorNavigation({
   const handleRestart = useCallback(() => {
     setCurrentSegmentIndex(0);
     setProgress(0);
+    pausedProgressRef.current = 0;
+    setIsPaused(false);
     setStatus("LOADING");
 
     // Reload first map
@@ -465,6 +491,33 @@ export default function IndoorNavigation({
       });
     }
   }, [navigationResult]);
+
+  // Playback controls
+  const handlePlayPause = useCallback(() => {
+    if (isPaused) {
+      // Resume - animation will restart from pausedProgressRef
+      setIsPaused(false);
+    } else {
+      // Pause - store current progress
+      pausedProgressRef.current = progress;
+      setIsPaused(true);
+      setIsAnimating(false);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+  }, [isPaused, progress]);
+
+  const handleRestartSegment = useCallback(() => {
+    // Restart current segment from beginning
+    setProgress(0);
+    pausedProgressRef.current = 0;
+    setIsPaused(false);
+  }, []);
+
+  const handleToggleSpeed = useCallback(() => {
+    setSpeedMultiplier((prev) => (prev === 1 ? 2 : 1));
+  }, []);
 
   // ============================================================================
   // Render
@@ -731,6 +784,80 @@ export default function IndoorNavigation({
 
           {/* Overlay UI */}
           <AnimatePresence>{renderOverlay()}</AnimatePresence>
+
+          {/* Floating Playback Controls */}
+          {status === "NAVIGATING" && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
+            >
+              <div className="flex items-center gap-2 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
+                {/* Restart Segment Button */}
+                <button
+                  onClick={handleRestartSegment}
+                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+                  title="Restart segment"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-gray-200" />
+
+                {/* Play/Pause Button */}
+                <button
+                  onClick={handlePlayPause}
+                  className={`p-3 rounded-xl transition-all ${
+                    isPaused
+                      ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  title={isPaused ? "Play" : "Pause"}
+                >
+                  {isPaused ? (
+                    <Play className="w-6 h-6" fill="currentColor" />
+                  ) : (
+                    <Pause className="w-6 h-6" fill="currentColor" />
+                  )}
+                </button>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-gray-200" />
+
+                {/* Speed Toggle Button */}
+                <button
+                  onClick={handleToggleSpeed}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-xl transition-all ${
+                    speedMultiplier === 2
+                      ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                  }`}
+                  title="Toggle speed"
+                >
+                  <Gauge className="w-5 h-5" />
+                  <span className="font-semibold text-sm">
+                    {speedMultiplier}x
+                  </span>
+                </button>
+
+                {/* Current Segment Info */}
+                {navigationResult && navigationResult.totalMaps > 1 && (
+                  <>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="flex items-center gap-1 px-2 text-sm text-gray-500">
+                      <span className="font-medium text-gray-700">
+                        {currentSegmentIndex + 1}
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                      <span>{navigationResult.totalMaps}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
