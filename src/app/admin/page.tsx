@@ -11,6 +11,7 @@ import {
   Upload,
   X,
   Image as ImageIcon,
+  Home,
 } from "lucide-react";
 import type { MapData } from "@/types/navigation";
 
@@ -180,6 +181,17 @@ export default function AdminPage() {
       {/* Header */}
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          {/* Back to Home Link */}
+          <div className="mb-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              <span className="text-sm font-medium">Back to Home</span>
+            </Link>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Map className="w-8 h-8 text-blue-600" />

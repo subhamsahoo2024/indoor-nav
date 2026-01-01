@@ -719,7 +719,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
                   </div>
 
                   {/* Label */}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-white/90 rounded text-xs font-medium whitespace-nowrap shadow">
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-white/90 rounded text-xs font-medium whitespace-nowrap shadow text-black">
                     {node.name}
                   </div>
                 </div>
