@@ -8,6 +8,12 @@ import {
   RotateCcw,
   Gauge,
   ChevronRight,
+  Navigation,
+  MapPin,
+  CheckCircle2,
+  AlertTriangle,
+  LogIn,
+  Loader2,
 } from "lucide-react";
 import type { MapData, Node } from "@/types/navigation";
 import type { NavigationResult } from "@/lib/pathfinder";
@@ -383,7 +389,12 @@ export default function IndoorNavigation({
 
   // Animation loop
   useEffect(() => {
-    if (status !== "NAVIGATING" || !isReady || pathPixelCoords.length < 2 || isPaused) {
+    if (
+      status !== "NAVIGATING" ||
+      !isReady ||
+      pathPixelCoords.length < 2 ||
+      isPaused
+    ) {
       return;
     }
 
@@ -392,7 +403,7 @@ export default function IndoorNavigation({
     const baseDuration = pathLength / 100; // pixels per second
     baseDurationRef.current = baseDuration;
     const duration = baseDuration / (animationSpeed * speedMultiplier);
-    
+
     // Calculate remaining duration based on paused progress
     const startProgress = pausedProgressRef.current;
     const remainingDuration = duration * (1 - startProgress);
@@ -402,9 +413,9 @@ export default function IndoorNavigation({
     function animate(timestamp: number) {
       if (startTime === null) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000;
-      
+
       // Calculate new progress from where we left off
-      const progressDelta = elapsed / remainingDuration * (1 - startProgress);
+      const progressDelta = (elapsed / remainingDuration) * (1 - startProgress);
       const newProgress = Math.min(startProgress + progressDelta, 1);
 
       setProgress(newProgress);
@@ -427,7 +438,14 @@ export default function IndoorNavigation({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [status, isReady, pathPixelCoords, animationSpeed, speedMultiplier, isPaused]);
+  }, [
+    status,
+    isReady,
+    pathPixelCoords,
+    animationSpeed,
+    speedMultiplier,
+    isPaused,
+  ]);
 
   // ============================================================================
   // Handlers
@@ -523,134 +541,50 @@ export default function IndoorNavigation({
   // Render
   // ============================================================================
 
-  const renderOverlay = () => {
-    switch (status) {
-      case "LOADING":
-        return (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-lg">
-            <div className="bg-white rounded-xl p-6 shadow-xl flex items-center gap-4">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-gray-700 font-medium">
-                Loading navigation...
-              </span>
-            </div>
-          </div>
-        );
-
-      case "ERROR":
-        return (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-lg">
-            <div className="bg-white rounded-xl p-6 shadow-xl max-w-sm">
-              <div className="flex items-center gap-3 text-red-600 mb-4">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                <span className="font-semibold">Navigation Error</span>
-              </div>
-              <p className="text-gray-600 mb-4">{errorMessage}</p>
-            </div>
-          </div>
-        );
-
-      case "WAITING_AT_GATEWAY":
-        const nextMapName =
-          navigationResult?.segments[currentSegmentIndex + 1]?.mapId ?? "Next";
-        const gatewayNode = pathNodes[pathNodes.length - 1];
-        return (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-lg">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-xl p-6 shadow-xl max-w-sm text-center"
-            >
-              <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-amber-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Arrived at {gatewayNode?.name ?? "Gateway"}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Continue to the next area to proceed with navigation.
-              </p>
-              <button
-                onClick={handleContinueToNextMap}
-                className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-              >
-                Continue to {nextMapName}
-              </button>
-            </motion.div>
-          </div>
-        );
-
-      case "COMPLETED":
-        const destNode = pathNodes[pathNodes.length - 1];
-        return (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-lg">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-xl p-6 shadow-xl max-w-sm text-center"
-            >
-              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Destination Reached!
-              </h3>
-              <p className="text-gray-600 mb-4">
-                You have arrived at{" "}
-                <span className="font-medium">
-                  {destNode?.name ?? "your destination"}
-                </span>
-                .
-              </p>
-              <button
-                onClick={handleRestart}
-                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
-              >
-                Restart Navigation
-              </button>
-            </motion.div>
-          </div>
-        );
-
-      default:
-        return null;
+  // Get current instruction text based on status and progress
+  const currentInstruction = useMemo(() => {
+    if (status === "LOADING") return "Loading navigation...";
+    if (status === "ERROR") return errorMessage ?? "Navigation error";
+    if (status === "COMPLETED") {
+      const destNode = pathNodes[pathNodes.length - 1];
+      return `Arrived at ${destNode?.name ?? "destination"}`;
     }
+    if (status === "WAITING_AT_GATEWAY") {
+      const gatewayNode = pathNodes[pathNodes.length - 1];
+      return `At ${gatewayNode?.name ?? "Gateway"} - Ready to continue`;
+    }
+    if (status === "NAVIGATING") {
+      if (pathNodes.length === 0) return "Preparing route...";
+      const currentNodeIndex = Math.min(
+        Math.floor(progress * (pathNodes.length - 1)),
+        pathNodes.length - 1
+      );
+      const nextNodeIndex = Math.min(
+        currentNodeIndex + 1,
+        pathNodes.length - 1
+      );
+      const nextNode = pathNodes[nextNodeIndex];
+      if (progress >= 0.95) {
+        return `Arriving at ${nextNode?.name ?? "destination"}`;
+      }
+      return `Walk towards ${nextNode?.name ?? "next point"}`;
+    }
+    return "Ready to navigate";
+  }, [status, progress, pathNodes, errorMessage]);
+
+  // Only render overlay for LOADING state (minimal, non-blocking)
+  const renderOverlay = () => {
+    if (status === "LOADING") {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg z-30">
+          <div className="bg-white rounded-xl p-4 shadow-xl flex items-center gap-3">
+            <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            <span className="text-gray-700 font-medium">Loading...</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   // Determine which nodes to show
@@ -666,33 +600,156 @@ export default function IndoorNavigation({
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-100 rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <div>
-          <h2 className="font-semibold text-gray-800">
-            {currentMapData?.name ?? "Indoor Navigation"}
-          </h2>
-          {navigationResult && (
-            <p className="text-sm text-gray-500">
-              Map {currentSegmentIndex + 1} of {navigationResult.totalMaps}
-            </p>
-          )}
+      {/* Top Status Bar */}
+      <div className="bg-white/95 backdrop-blur-md border-b shadow-sm z-10">
+        {/* Main Bar */}
+        <div className="px-4 py-3 flex items-center justify-between gap-4">
+          {/* Left: Status Icon + Instruction */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Status Icon */}
+            <div
+              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                status === "COMPLETED"
+                  ? "bg-green-100"
+                  : status === "ERROR"
+                  ? "bg-red-100"
+                  : status === "WAITING_AT_GATEWAY"
+                  ? "bg-amber-100"
+                  : status === "LOADING"
+                  ? "bg-gray-100"
+                  : "bg-blue-100"
+              }`}
+            >
+              {status === "COMPLETED" ? (
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              ) : status === "ERROR" ? (
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              ) : status === "WAITING_AT_GATEWAY" ? (
+                <LogIn className="w-5 h-5 text-amber-600" />
+              ) : status === "LOADING" ? (
+                <Loader2 className="w-5 h-5 text-gray-600 animate-spin" />
+              ) : (
+                <Navigation className="w-5 h-5 text-blue-600" />
+              )}
+            </div>
+
+            {/* Instruction Text */}
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-gray-800 truncate">
+                {currentInstruction}
+              </p>
+              <p className="text-sm text-gray-500">
+                {currentMapData?.name ?? "Indoor Navigation"}
+                {navigationResult && navigationResult.totalMaps > 1 && (
+                  <span className="ml-2">
+                    • Map {currentSegmentIndex + 1}/{navigationResult.totalMaps}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Action Buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Gateway: Continue Button */}
+            {status === "WAITING_AT_GATEWAY" && (
+              <motion.button
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                onClick={handleContinueToNextMap}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-500/30"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>
+                  Enter{" "}
+                  {navigationResult?.segments[currentSegmentIndex + 1]?.mapId ??
+                    "Next"}
+                </span>
+              </motion.button>
+            )}
+
+            {/* Completed: Restart Button */}
+            {status === "COMPLETED" && (
+              <motion.button
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                onClick={handleRestart}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Restart</span>
+              </motion.button>
+            )}
+
+            {/* Navigating: Playback Controls (compact version) */}
+            {status === "NAVIGATING" && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handlePlayPause}
+                  className={`p-2 rounded-lg transition-all ${
+                    isPaused
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  title={isPaused ? "Play" : "Pause"}
+                >
+                  {isPaused ? (
+                    <Play className="w-5 h-5" fill="currentColor" />
+                  ) : (
+                    <Pause className="w-5 h-5" fill="currentColor" />
+                  )}
+                </button>
+                <button
+                  onClick={handleToggleSpeed}
+                  className={`px-2 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    speedMultiplier === 2
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                  title="Toggle speed"
+                >
+                  {speedMultiplier}x
+                </button>
+              </div>
+            )}
+
+            {/* Status Badge */}
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                status === "NAVIGATING"
+                  ? "bg-blue-100 text-blue-700"
+                  : status === "COMPLETED"
+                  ? "bg-green-100 text-green-700"
+                  : status === "ERROR"
+                  ? "bg-red-100 text-red-700"
+                  : status === "WAITING_AT_GATEWAY"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {status === "WAITING_AT_GATEWAY" ? "AT GATEWAY" : status}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              status === "NAVIGATING"
-                ? "bg-blue-100 text-blue-700"
-                : status === "COMPLETED"
-                ? "bg-green-100 text-green-700"
-                : status === "ERROR"
-                ? "bg-red-100 text-red-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {status}
-          </span>
-        </div>
+
+        {/* Progress Bar (integrated into status bar) */}
+        {(status === "NAVIGATING" ||
+          status === "WAITING_AT_GATEWAY" ||
+          status === "COMPLETED") && (
+          <div className="h-1 bg-gray-100">
+            <motion.div
+              className={`h-full ${
+                status === "COMPLETED"
+                  ? "bg-green-500"
+                  : status === "WAITING_AT_GATEWAY"
+                  ? "bg-amber-500"
+                  : "bg-blue-500"
+              }`}
+              style={{ width: `${progress * 100}%` }}
+              transition={{ duration: 0.1 }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Map Container - Scrollable */}
@@ -782,102 +839,10 @@ export default function IndoorNavigation({
             </svg>
           )}
 
-          {/* Overlay UI */}
+          {/* Overlay UI (only for loading) */}
           <AnimatePresence>{renderOverlay()}</AnimatePresence>
-
-          {/* Floating Playback Controls */}
-          {status === "NAVIGATING" && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
-            >
-              <div className="flex items-center gap-2 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
-                {/* Restart Segment Button */}
-                <button
-                  onClick={handleRestartSegment}
-                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
-                  title="Restart segment"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-
-                {/* Divider */}
-                <div className="w-px h-8 bg-gray-200" />
-
-                {/* Play/Pause Button */}
-                <button
-                  onClick={handlePlayPause}
-                  className={`p-3 rounded-xl transition-all ${
-                    isPaused
-                      ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                  title={isPaused ? "Play" : "Pause"}
-                >
-                  {isPaused ? (
-                    <Play className="w-6 h-6" fill="currentColor" />
-                  ) : (
-                    <Pause className="w-6 h-6" fill="currentColor" />
-                  )}
-                </button>
-
-                {/* Divider */}
-                <div className="w-px h-8 bg-gray-200" />
-
-                {/* Speed Toggle Button */}
-                <button
-                  onClick={handleToggleSpeed}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-xl transition-all ${
-                    speedMultiplier === 2
-                      ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-                  }`}
-                  title="Toggle speed"
-                >
-                  <Gauge className="w-5 h-5" />
-                  <span className="font-semibold text-sm">
-                    {speedMultiplier}x
-                  </span>
-                </button>
-
-                {/* Current Segment Info */}
-                {navigationResult && navigationResult.totalMaps > 1 && (
-                  <>
-                    <div className="w-px h-8 bg-gray-200" />
-                    <div className="flex items-center gap-1 px-2 text-sm text-gray-500">
-                      <span className="font-medium text-gray-700">
-                        {currentSegmentIndex + 1}
-                      </span>
-                      <ChevronRight className="w-4 h-4" />
-                      <span>{navigationResult.totalMaps}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          )}
         </div>
       </div>
-
-      {/* Progress indicator */}
-      {status === "NAVIGATING" && (
-        <div className="bg-white border-t px-4 py-2">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Progress:</span>
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-blue-500"
-                style={{ width: `${progress * 100}%` }}
-              />
-            </div>
-            <span className="text-sm font-medium text-gray-700">
-              {Math.round(progress * 100)}%
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
