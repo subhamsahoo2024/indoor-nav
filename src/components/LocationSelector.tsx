@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   MapPin,
   Navigation,
@@ -10,6 +10,9 @@ import {
   Building2,
   DoorOpen,
   Compass,
+  Search,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import type { MapData, Node, NodeType } from "@/types/navigation";
 
@@ -26,10 +29,13 @@ interface LocationSelectorProps {
   ) => void;
 }
 
-interface MapOption {
-  id: string;
-  name: string;
-  nodes: Node[];
+interface SearchOption {
+  nodeId: string;
+  mapId: string;
+  nodeName: string;
+  mapName: string;
+  label: string; // Format: "Node Name (Map Name)"
+  type: NodeType;
 }
 
 // ============================================================================
@@ -59,6 +65,240 @@ function getNodeTypeLabel(type: NodeType): string {
 }
 
 // ============================================================================
+// Searchable Combobox Component
+// ============================================================================
+
+interface SearchableSelectProps {
+  options: SearchOption[];
+  value: SearchOption | null;
+  onChange: (option: SearchOption | null) => void;
+  placeholder: string;
+  label: string;
+  icon: React.ReactNode;
+  excludeNodeId?: string; // To prevent selecting same node as start/end
+}
+
+function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  label,
+  icon,
+  excludeNodeId,
+}: SearchableSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Filter options based on search query and exclusion
+  const filteredOptions = useMemo(() => {
+    let filtered = options;
+
+    // Exclude specified node
+    if (excludeNodeId) {
+      filtered = filtered.filter((opt) => opt.nodeId !== excludeNodeId);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (opt) =>
+          opt.nodeName.toLowerCase().includes(query) ||
+          opt.mapName.toLowerCase().includes(query) ||
+          opt.label.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [options, searchQuery, excludeNodeId]);
+
+  // Group options by map for better organization
+  const groupedOptions = useMemo(() => {
+    const groups: Record<string, SearchOption[]> = {};
+    filteredOptions.forEach((opt) => {
+      if (!groups[opt.mapName]) {
+        groups[opt.mapName] = [];
+      }
+      groups[opt.mapName].push(opt);
+    });
+    return groups;
+  }, [filteredOptions]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as globalThis.Node)
+      ) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle option selection
+  const handleSelect = useCallback(
+    (option: SearchOption) => {
+      onChange(option);
+      setIsOpen(false);
+      setSearchQuery("");
+    },
+    [onChange]
+  );
+
+  // Handle clear selection
+  const handleClear = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onChange(null);
+      setSearchQuery("");
+    },
+    [onChange]
+  );
+
+  // Handle input focus
+  const handleInputClick = () => {
+    setIsOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+        {icon}
+        {label}
+      </label>
+
+      <div ref={containerRef} className="relative">
+        {/* Input/Display Field */}
+        <div
+          onClick={handleInputClick}
+          className={`w-full px-4 py-3 border rounded-xl bg-gray-50 cursor-pointer transition-all flex items-center gap-2 ${
+            isOpen
+              ? "border-blue-500 ring-2 ring-blue-500 bg-white"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+
+          {isOpen ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-400"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : value ? (
+            <div className="flex-1 flex items-center justify-between">
+              <div className="truncate">
+                <span className="text-gray-800 font-medium">
+                  {value.nodeName}
+                </span>
+                <span className="text-gray-500 text-sm ml-2">
+                  ({value.mapName})
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span className="flex-1 text-gray-400">{placeholder}</span>
+          )}
+
+          {value && !isOpen ? (
+            <button
+              onClick={handleClear}
+              className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          ) : (
+            <ChevronDown
+              className={`w-4 h-4 text-gray-400 transition-transform ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
+          )}
+        </div>
+
+        {/* Dropdown */}
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-auto">
+            {Object.keys(groupedOptions).length === 0 ? (
+              <div className="px-4 py-8 text-center text-gray-500">
+                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No locations found</p>
+                {searchQuery && (
+                  <p className="text-xs mt-1">Try a different search term</p>
+                )}
+              </div>
+            ) : (
+              Object.entries(groupedOptions).map(([mapName, mapOptions]) => (
+                <div key={mapName}>
+                  {/* Map Name Header */}
+                  <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 sticky top-0">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {mapName}
+                    </span>
+                  </div>
+
+                  {/* Options */}
+                  {mapOptions.map((option) => {
+                    const Icon = getNodeIcon(option.type);
+                    const isSelected = value?.nodeId === option.nodeId;
+
+                    return (
+                      <button
+                        key={`${option.mapId}-${option.nodeId}`}
+                        onClick={() => handleSelect(option)}
+                        className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50 transition-colors text-left ${
+                          isSelected ? "bg-blue-50" : ""
+                        }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            option.type === "ROOM"
+                              ? "bg-blue-100 text-blue-600"
+                              : option.type === "GATEWAY"
+                              ? "bg-amber-100 text-amber-600"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 truncate">
+                            {option.nodeName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {getNodeTypeLabel(option.type)}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -66,26 +306,24 @@ export default function LocationSelector({
   onStartNavigation,
 }: LocationSelectorProps) {
   // Data state
-  const [maps, setMaps] = useState<MapOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Selection state - Start
-  const [startMapId, setStartMapId] = useState<string>("");
-  const [startNodeId, setStartNodeId] = useState<string>("");
+  // Flattened search options
+  const [allOptions, setAllOptions] = useState<SearchOption[]>([]);
 
-  // Selection state - End
-  const [endMapId, setEndMapId] = useState<string>("");
-  const [endNodeId, setEndNodeId] = useState<string>("");
+  // Selection state
+  const [startLocation, setStartLocation] = useState<SearchOption | null>(null);
+  const [endLocation, setEndLocation] = useState<SearchOption | null>(null);
 
-  // Fetch all maps on mount
+  // Fetch all maps and flatten to search options
   useEffect(() => {
-    const fetchMaps = async () => {
+    const fetchAndFlattenMaps = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // First get the list of maps
+        // Get list of maps
         const listResponse = await fetch("/api/maps");
         const listResult = await listResponse.json();
 
@@ -93,28 +331,37 @@ export default function LocationSelector({
           throw new Error(listResult.error || "Failed to fetch maps");
         }
 
-        // Fetch full data for each map to get nodes
-        const mapsWithNodes: MapOption[] = await Promise.all(
+        // Fetch full data for each map
+        const allMaps: MapData[] = await Promise.all(
           listResult.data.map(async (mapMeta: { id: string; name: string }) => {
             const mapResponse = await fetch(`/api/maps/${mapMeta.id}`);
             const mapResult = await mapResponse.json();
-
-            if (mapResult.success) {
-              return {
-                id: mapResult.data.id,
-                name: mapResult.data.name,
-                nodes: mapResult.data.nodes || [],
-              };
-            }
-            return {
-              id: mapMeta.id,
-              name: mapMeta.name,
-              nodes: [],
-            };
+            return mapResult.success ? mapResult.data : null;
           })
         );
 
-        setMaps(mapsWithNodes.filter((m) => m.nodes.length > 0));
+        // Flatten to SearchOption array
+        const options: SearchOption[] = [];
+
+        allMaps
+          .filter((m): m is MapData => m !== null && m.nodes?.length > 0)
+          .forEach((map) => {
+            map.nodes.forEach((node) => {
+              options.push({
+                nodeId: node.id,
+                mapId: map.id,
+                nodeName: node.name,
+                mapName: map.name,
+                label: `${node.name} (${map.name})`,
+                type: node.type,
+              });
+            });
+          });
+
+        // Sort by name for better UX
+        options.sort((a, b) => a.nodeName.localeCompare(b.nodeName));
+
+        setAllOptions(options);
       } catch (err) {
         console.error("Failed to fetch maps:", err);
         setError(err instanceof Error ? err.message : "Failed to load maps");
@@ -123,60 +370,29 @@ export default function LocationSelector({
       }
     };
 
-    fetchMaps();
+    fetchAndFlattenMaps();
   }, []);
 
-  // Get nodes for start selection (all node types)
-  const startNodes = useMemo(() => {
-    const selectedMap = maps.find((m) => m.id === startMapId);
-    if (!selectedMap) return [];
-    // Return all nodes for start selection
-    return selectedMap.nodes;
-  }, [maps, startMapId]);
-
-  // Get nodes for end selection (prefer non-gateway, but include all if needed)
-  const endNodes = useMemo(() => {
-    const selectedMap = maps.find((m) => m.id === endMapId);
-    if (!selectedMap) return [];
-
-    // Filter out GATEWAY nodes for destination (users navigate to rooms, not connectors)
-    const nonGatewayNodes = selectedMap.nodes.filter(
-      (n) => n.type !== "GATEWAY"
-    );
-
-    // If there are non-gateway nodes, return those; otherwise return all
-    return nonGatewayNodes.length > 0 ? nonGatewayNodes : selectedMap.nodes;
-  }, [maps, endMapId]);
-
-  // Reset node selection when map changes
-  useEffect(() => {
-    setStartNodeId("");
-  }, [startMapId]);
-
-  useEffect(() => {
-    setEndNodeId("");
-  }, [endMapId]);
+  // Filter options for destination (exclude gateways for better UX)
+  const destinationOptions = useMemo(() => {
+    return allOptions.filter((opt) => opt.type !== "GATEWAY");
+  }, [allOptions]);
 
   // Validation
   const isValid =
-    startMapId &&
-    startNodeId &&
-    endMapId &&
-    endNodeId &&
-    startNodeId !== endNodeId;
+    startLocation && endLocation && startLocation.nodeId !== endLocation.nodeId;
 
   // Handle navigation start
   const handleStartNavigation = () => {
-    if (isValid) {
-      onStartNavigation(startMapId, startNodeId, endMapId, endNodeId);
+    if (isValid && startLocation && endLocation) {
+      onStartNavigation(
+        startLocation.mapId,
+        startLocation.nodeId,
+        endLocation.mapId,
+        endLocation.nodeId
+      );
     }
   };
-
-  // Get selected node names for summary
-  const startNodeName = startNodes.find((n) => n.id === startNodeId)?.name;
-  const endNodeName = endNodes.find((n) => n.id === endNodeId)?.name;
-  const startMapName = maps.find((m) => m.id === startMapId)?.name;
-  const endMapName = maps.find((m) => m.id === endMapId)?.name;
 
   // ============================================================================
   // Render
@@ -217,13 +433,15 @@ export default function LocationSelector({
     );
   }
 
-  if (maps.length === 0) {
+  if (allOptions.length === 0) {
     return (
       <div className="w-full max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex flex-col items-center justify-center py-12">
             <MapPin className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-600 font-medium mb-2">No maps available</p>
+            <p className="text-gray-600 font-medium mb-2">
+              No locations available
+            </p>
             <p className="text-gray-500 text-sm">
               Please add maps with nodes in the admin dashboard.
             </p>
@@ -247,7 +465,7 @@ export default function LocationSelector({
                 Indoor Navigation
               </h2>
               <p className="text-blue-100 text-sm">
-                Find the best route to your destination
+                Search for any location to get directions
               </p>
             </div>
           </div>
@@ -255,55 +473,20 @@ export default function LocationSelector({
 
         {/* Form Content */}
         <div className="p-6 space-y-6">
-          {/* Start Location */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          {/* Start Location - Global Search */}
+          <SearchableSelect
+            options={allOptions}
+            value={startLocation}
+            onChange={setStartLocation}
+            placeholder="Search for starting point..."
+            label="Starting Point"
+            icon={
               <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
               </div>
-              Starting Point
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Start Map Select */}
-              <div>
-                <select
-                  value={startMapId}
-                  onChange={(e) => setStartMapId(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="">Select building/area...</option>
-                  {maps.map((map) => (
-                    <option key={map.id} value={map.id}>
-                      {map.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Start Node Select */}
-              <div>
-                <select
-                  value={startNodeId}
-                  onChange={(e) => setStartNodeId(e.target.value)}
-                  disabled={!startMapId}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {startMapId ? "Select location..." : "Select area first"}
-                  </option>
-                  {startNodes.map((node) => {
-                    const Icon = getNodeIcon(node.type);
-                    return (
-                      <option key={node.id} value={node.id}>
-                        {node.name} ({getNodeTypeLabel(node.type)})
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-            </div>
-          </div>
+            }
+            excludeNodeId={endLocation?.nodeId}
+          />
 
           {/* Direction Arrow */}
           <div className="flex justify-center">
@@ -312,86 +495,64 @@ export default function LocationSelector({
             </div>
           </div>
 
-          {/* End Location */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          {/* End Location - Global Search (excludes gateways) */}
+          <SearchableSelect
+            options={destinationOptions}
+            value={endLocation}
+            onChange={setEndLocation}
+            placeholder="Search for destination..."
+            label="Destination"
+            icon={
               <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
               </div>
-              Destination
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* End Map Select */}
-              <div>
-                <select
-                  value={endMapId}
-                  onChange={(e) => setEndMapId(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="">Select building/area...</option>
-                  {maps.map((map) => (
-                    <option key={map.id} value={map.id}>
-                      {map.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* End Node Select */}
-              <div>
-                <select
-                  value={endNodeId}
-                  onChange={(e) => setEndNodeId(e.target.value)}
-                  disabled={!endMapId}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {endMapId ? "Select destination..." : "Select area first"}
-                  </option>
-                  {endNodes.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.name} ({getNodeTypeLabel(node.type)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+            }
+            excludeNodeId={startLocation?.nodeId}
+          />
 
           {/* Route Summary */}
-          {startNodeName && endNodeName && (
+          {startLocation && endLocation && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
               <p className="text-sm text-blue-800">
                 <span className="font-medium">Route: </span>
                 <span className="text-green-600 font-medium">
-                  {startNodeName}
+                  {startLocation.nodeName}
                 </span>
-                {startMapId !== endMapId && (
-                  <span className="text-gray-500"> ({startMapName})</span>
+                {startLocation.mapId !== endLocation.mapId && (
+                  <span className="text-gray-500">
+                    {" "}
+                    ({startLocation.mapName})
+                  </span>
                 )}
                 <span className="mx-2">→</span>
-                <span className="text-red-600 font-medium">{endNodeName}</span>
-                {startMapId !== endMapId && (
-                  <span className="text-gray-500"> ({endMapName})</span>
+                <span className="text-red-600 font-medium">
+                  {endLocation.nodeName}
+                </span>
+                {startLocation.mapId !== endLocation.mapId && (
+                  <span className="text-gray-500">
+                    {" "}
+                    ({endLocation.mapName})
+                  </span>
                 )}
               </p>
-              {startMapId !== endMapId && (
+              {startLocation.mapId !== endLocation.mapId && (
                 <p className="text-xs text-blue-600 mt-1">
-                  Multi-building route - gateways will be used
+                  Multi-building route - gateways will be used automatically
                 </p>
               )}
             </div>
           )}
 
           {/* Same Node Warning */}
-          {startNodeId && endNodeId && startNodeId === endNodeId && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <p className="text-sm text-amber-800">
-                ⚠️ Start and destination cannot be the same location.
-              </p>
-            </div>
-          )}
+          {startLocation &&
+            endLocation &&
+            startLocation.nodeId === endLocation.nodeId && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm text-amber-800">
+                  ⚠️ Start and destination cannot be the same location.
+                </p>
+              </div>
+            )}
 
           {/* Start Button */}
           <button
@@ -407,8 +568,8 @@ export default function LocationSelector({
         {/* Footer */}
         <div className="bg-gray-50 px-6 py-4 border-t">
           <p className="text-xs text-gray-500 text-center">
-            Tip: The system will automatically find the optimal route, including
-            any necessary building transitions.
+            Tip: Just type a location name like &quot;Dean&apos;s Office&quot; -
+            no need to select a building first!
           </p>
         </div>
       </div>
