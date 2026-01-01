@@ -249,6 +249,7 @@ export default function IndoorNavigation({
 }: IndoorNavigationProps) {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Navigation state
   const [navigationResult, setNavigationResult] =
@@ -386,6 +387,32 @@ export default function IndoorNavigation({
       cancelled = true;
     };
   }, [startMapId, startNodeId, endMapId, endNodeId, onError]);
+
+  // Auto-scroll to follow walker position
+  useEffect(() => {
+    if (!scrollContainerRef.current || !containerRef.current || !isReady) {
+      return;
+    }
+
+    if (status !== "NAVIGATING" || pathPixelCoords.length < 2) {
+      return;
+    }
+
+    const walkerPos = getPointAtProgress(pathPixelCoords, progress);
+    const scrollContainer = scrollContainerRef.current;
+
+    const walkerAbsoluteX = imageBounds.offsetX + walkerPos.x;
+    const walkerAbsoluteY = imageBounds.offsetY + walkerPos.y;
+
+    const viewportWidth = scrollContainer.clientWidth;
+    const viewportHeight = scrollContainer.clientHeight;
+
+    const targetScrollX = walkerAbsoluteX - viewportWidth / 2;
+    const targetScrollY = walkerAbsoluteY - viewportHeight / 2;
+
+    scrollContainer.scrollLeft = Math.max(0, targetScrollX);
+    scrollContainer.scrollTop = Math.max(0, targetScrollY);
+  }, [progress, status, isReady, pathPixelCoords, imageBounds]);
 
   // Animation loop
   useEffect(() => {
@@ -752,8 +779,8 @@ export default function IndoorNavigation({
         )}
       </div>
 
-      {/* Map Container - Scrollable */}
-      <div className="flex-1 overflow-auto bg-gray-200">
+      {/* Map Container - Auto-scrolling to follow navigation */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-auto bg-gray-200">
         <div
           ref={containerRef}
           className="relative bg-gradient-to-br from-slate-200 to-slate-300"

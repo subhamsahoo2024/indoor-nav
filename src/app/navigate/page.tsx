@@ -93,6 +93,17 @@ export default function NavigatePage() {
           </Link>
         </div>
 
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <div className="w-48 h-48">
+            <img 
+              src="/navigation-logo.png" 
+              alt="Indoor Navigation Logo" 
+              className="w-full h-full object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
