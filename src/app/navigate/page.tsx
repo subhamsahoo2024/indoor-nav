@@ -81,12 +81,12 @@ export default function NavigatePage() {
 
   if (!navState.isNavigating) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 py-12 px-4">
+      <main className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 py-6 sm:py-12 px-4">
         {/* Back to Home */}
-        <div className="max-w-4xl mx-auto mb-6">
+        <div className="max-w-4xl mx-auto mb-4 sm:mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors min-h-[44px]"
           >
             <Home className="w-4 h-4" />
             <span className="text-sm font-medium">Back to Home</span>
@@ -105,11 +105,11 @@ export default function NavigatePage() {
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
             Campus Navigation
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Find your way around the campus with ease
           </p>
         </div>
@@ -118,8 +118,8 @@ export default function NavigatePage() {
         <LocationSelector onStartNavigation={handleStartNavigation} />
 
         {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="mt-8 sm:mt-12 text-center">
+          <p className="text-xs sm:text-sm text-gray-500">
             Indoor Navigation System • Multi-Map Routing
           </p>
         </div>
@@ -132,46 +132,50 @@ export default function NavigatePage() {
   // ============================================================================
 
   return (
-    <main className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Top Bar */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <main className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      {/* Top Bar - Compact on Mobile */}
+      <div className="bg-white border-b shadow-sm flex-shrink-0">
+        <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 min-h-[44px] text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Search</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base font-medium hidden sm:inline">
+              Back to Search
+            </span>
+            <span className="text-sm font-medium sm:hidden">Back</span>
           </button>
 
-          <h1 className="text-lg font-semibold text-gray-800">
+          <h1 className="text-sm sm:text-lg font-semibold text-gray-800">
             Route Navigation
           </h1>
 
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 min-h-[44px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            <span className="font-medium">New Route</span>
+            <span className="text-sm font-medium hidden sm:inline">
+              New Route
+            </span>
+            <span className="text-sm font-medium sm:hidden">New</span>
           </button>
         </div>
       </div>
 
-      {/* Navigation Map Container */}
-      <div className="flex-1 p-4">
-        <div className="h-full min-h-[calc(100vh-120px)] border-2 border-gray-200 rounded-xl overflow-hidden shadow-xl bg-white">
-          <IndoorNavigation
-            startMapId={navState.startMapId}
-            startNodeId={navState.startNodeId}
-            endMapId={navState.endMapId}
-            endNodeId={navState.endNodeId}
-            animationSpeed={1}
-            showLabels={true}
-            onComplete={handleNavigationComplete}
-            onError={handleNavigationError}
-          />
-        </div>
+      {/* Navigation Map Container - Full Viewport */}
+      <div className="flex-1 overflow-hidden">
+        <IndoorNavigation
+          startMapId={navState.startMapId}
+          startNodeId={navState.startNodeId}
+          endMapId={navState.endMapId}
+          endNodeId={navState.endNodeId}
+          animationSpeed={1}
+          showLabels={true}
+          onComplete={handleNavigationComplete}
+          onError={handleNavigationError}
+        />
       </div>
     </main>
   );

@@ -472,7 +472,7 @@ export default function LocationSelector({
         </div>
 
         {/* Form Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Start Location - Global Search */}
           <SearchableSelect
             options={allOptions}
@@ -512,8 +512,8 @@ export default function LocationSelector({
 
           {/* Route Summary */}
           {startLocation && endLocation && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-blue-800">
                 <span className="font-medium">Route: </span>
                 <span className="text-green-600 font-medium">
                   {startLocation.nodeName}
@@ -547,26 +547,26 @@ export default function LocationSelector({
           {startLocation &&
             endLocation &&
             startLocation.nodeId === endLocation.nodeId && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-sm text-amber-800">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-amber-800">
                   ⚠️ Start and destination cannot be the same location.
                 </p>
               </div>
             )}
 
-          {/* Start Button */}
+          {/* Start Button - Touch Friendly */}
           <button
             onClick={handleStartNavigation}
             disabled={!isValid}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 disabled:shadow-none transition-all flex items-center justify-center gap-3"
+            className="w-full py-4 min-h-[52px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg shadow-blue-500/25 disabled:shadow-none transition-all flex items-center justify-center gap-3"
           >
-            <Navigation className="w-5 h-5" />
+            <Navigation className="w-5 h-5 sm:w-6 sm:h-6" />
             Start Navigation
           </button>
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t">
+        <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t">
           <p className="text-xs text-gray-500 text-center">
             Tip: Just type a location name like &quot;Dean&apos;s Office&quot; -
             no need to select a building first!
