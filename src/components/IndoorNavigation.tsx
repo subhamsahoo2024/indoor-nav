@@ -15,6 +15,7 @@ import {
   LogIn,
   Loader2,
   Move,
+  GripHorizontal,
 } from "lucide-react";
 import type { MapData, Node } from "@/types/navigation";
 import type { NavigationResult } from "@/lib/pathfinder";
@@ -250,6 +251,7 @@ export default function IndoorNavigation({
 }: IndoorNavigationProps) {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Navigation state
   const [navigationResult, setNavigationResult] =
@@ -723,6 +725,7 @@ export default function IndoorNavigation({
 
       {/* Map Container - Native Scrollable Viewport */}
       <div
+        ref={mapContainerRef}
         className="flex-1 overflow-auto bg-gray-200 relative"
         style={{
           WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
@@ -848,15 +851,25 @@ export default function IndoorNavigation({
           <AnimatePresence>{renderOverlay()}</AnimatePresence>
         </div>
 
-        {/* Bottom Floating Controls - Mobile-Friendly */}
+        {/* Draggable Floating Control Pill */}
         {status === "NAVIGATING" && (
           <motion.div
+            drag
+            dragMomentum={false}
+            dragConstraints={mapContainerRef}
+            dragElastic={0}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-2rem)] max-w-md"
+            whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-auto cursor-grab"
           >
-            <div className="flex items-center justify-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
+            <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-200">
+              {/* Drag Handle */}
+              <div className="flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing">
+                <GripHorizontal className="w-5 h-5" />
+              </div>
+
               {/* Restart Button - Touch Friendly */}
               <button
                 onClick={handleRestartSegment}
