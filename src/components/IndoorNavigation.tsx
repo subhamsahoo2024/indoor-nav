@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   LogIn,
   Loader2,
+  Move,
 } from "lucide-react";
 import type { MapData, Node } from "@/types/navigation";
 import type { NavigationResult } from "@/lib/pathfinder";
@@ -600,15 +601,15 @@ export default function IndoorNavigation({
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-100 rounded-lg overflow-hidden">
-      {/* Top Status Bar */}
+      {/* Top Status Bar - Compact for Mobile */}
       <div className="bg-white/95 backdrop-blur-md border-b shadow-sm z-10">
         {/* Main Bar */}
-        <div className="px-4 py-3 flex items-center justify-between gap-4">
+        <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left: Status Icon + Instruction */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             {/* Status Icon */}
             <div
-              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+              className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
                 status === "COMPLETED"
                   ? "bg-green-100"
                   : status === "ERROR"
@@ -635,10 +636,10 @@ export default function IndoorNavigation({
 
             {/* Instruction Text */}
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-gray-800 truncate">
+              <p className="text-sm sm:text-base font-semibold text-gray-800 truncate">
                 {currentInstruction}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 {currentMapData?.name ?? "Indoor Navigation"}
                 {navigationResult && navigationResult.totalMaps > 1 && (
                   <span className="ml-2">
@@ -681,41 +682,9 @@ export default function IndoorNavigation({
               </motion.button>
             )}
 
-            {/* Navigating: Playback Controls (compact version) */}
-            {status === "NAVIGATING" && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handlePlayPause}
-                  className={`p-2 rounded-lg transition-all ${
-                    isPaused
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                  title={isPaused ? "Play" : "Pause"}
-                >
-                  {isPaused ? (
-                    <Play className="w-5 h-5" fill="currentColor" />
-                  ) : (
-                    <Pause className="w-5 h-5" fill="currentColor" />
-                  )}
-                </button>
-                <button
-                  onClick={handleToggleSpeed}
-                  className={`px-2 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    speedMultiplier === 2
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                  title="Toggle speed"
-                >
-                  {speedMultiplier}x
-                </button>
-              </div>
-            )}
-
-            {/* Status Badge */}
+            {/* Status Badge - Hidden on small screens */}
             <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
+              className={`hidden sm:inline-block px-3 py-1 rounded-full text-xs font-medium ${
                 status === "NAVIGATING"
                   ? "bg-blue-100 text-blue-700"
                   : status === "COMPLETED"
@@ -752,17 +721,53 @@ export default function IndoorNavigation({
         )}
       </div>
 
-      {/* Map Container - Scrollable */}
-      <div className="flex-1 overflow-auto bg-gray-200">
+      {/* Map Container - Native Scrollable Viewport */}
+      <div
+        className="flex-1 overflow-auto bg-gray-200 relative"
+        style={{
+          WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
+        }}
+      >
+        {/* Scroll Hint - Shows for 3 seconds on mount */}
+        <AnimatePresence>
+          {status === "NAVIGATING" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+              onAnimationComplete={() => {
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                  const element = document.querySelector("[data-scroll-hint]");
+                  if (element) {
+                    element.remove();
+                  }
+                }, 3000);
+              }}
+            >
+              <div
+                data-scroll-hint
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500/90 text-white text-sm font-medium rounded-full shadow-lg backdrop-blur-sm"
+              >
+                <Move className="w-4 h-4" />
+                <span>Scroll to Pan</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Large Content Wrapper - Forces Scroll on Mobile */}
         <div
           ref={containerRef}
           className="relative bg-gradient-to-br from-slate-200 to-slate-300"
           style={{
-            // Use container dimensions from imageBounds for proper sizing
-            minWidth: Math.max(imageBounds.containerWidth || 800, 800),
-            minHeight: Math.max(imageBounds.containerHeight || 600, 600),
-            width: imageBounds.containerWidth || "100%",
-            height: imageBounds.containerHeight || "100%",
+            // Large minimum dimensions to trigger scrolling on mobile
+            minWidth: "1200px",
+            minHeight: "800px",
+            width: Math.max(imageBounds.containerWidth || 1200, 1200),
+            height: Math.max(imageBounds.containerHeight || 800, 800),
             backgroundImage: currentMapData?.imageUrl
               ? `url(${currentMapData.imageUrl})`
               : undefined,
@@ -842,6 +847,58 @@ export default function IndoorNavigation({
           {/* Overlay UI (only for loading) */}
           <AnimatePresence>{renderOverlay()}</AnimatePresence>
         </div>
+
+        {/* Bottom Floating Controls - Mobile-Friendly */}
+        {status === "NAVIGATING" && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-2rem)] max-w-md"
+          >
+            <div className="flex items-center justify-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
+              {/* Restart Button - Touch Friendly */}
+              <button
+                onClick={handleRestartSegment}
+                className="p-3 min-h-[44px] min-w-[44px] rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
+                title="Restart segment"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+
+              {/* Play/Pause Button - Large and Center */}
+              <button
+                onClick={handlePlayPause}
+                className={`p-4 min-h-[56px] min-w-[56px] rounded-2xl transition-all flex items-center justify-center ${
+                  isPaused
+                    ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+                title={isPaused ? "Play" : "Pause"}
+              >
+                {isPaused ? (
+                  <Play className="w-6 h-6" fill="currentColor" />
+                ) : (
+                  <Pause className="w-6 h-6" fill="currentColor" />
+                )}
+              </button>
+
+              {/* Speed Toggle Button - Touch Friendly */}
+              <button
+                onClick={handleToggleSpeed}
+                className={`flex items-center gap-1 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
+                  speedMultiplier === 2
+                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                title="Toggle speed"
+              >
+                <Gauge className="w-4 h-4" />
+                <span>{speedMultiplier}x</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
