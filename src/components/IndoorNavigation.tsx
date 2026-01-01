@@ -251,7 +251,7 @@ export default function IndoorNavigation({
 }: IndoorNavigationProps) {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Navigation state
   const [navigationResult, setNavigationResult] =
@@ -392,7 +392,7 @@ export default function IndoorNavigation({
 
   // Auto-scroll to follow walker position
   useEffect(() => {
-    if (!scrollContainerRef.current || !containerRef.current || !isReady) {
+    if (!mapContainerRef.current || !containerRef.current || !isReady) {
       return;
     }
 
@@ -401,7 +401,7 @@ export default function IndoorNavigation({
     }
 
     const walkerPos = getPointAtProgress(pathPixelCoords, progress);
-    const scrollContainer = scrollContainerRef.current;
+    const scrollContainer = mapContainerRef.current;
 
     const walkerAbsoluteX = imageBounds.offsetX + walkerPos.x;
     const walkerAbsoluteY = imageBounds.offsetY + walkerPos.y;
@@ -749,10 +749,6 @@ export default function IndoorNavigation({
         )}
       </div>
 
-<<<<<<< HEAD
-      {/* Map Container - Auto-scrolling to follow navigation */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-auto bg-gray-200">
-=======
       {/* Map Container - Native Scrollable Viewport */}
       <div
         ref={mapContainerRef}
@@ -792,7 +788,6 @@ export default function IndoorNavigation({
         </AnimatePresence>
 
         {/* Large Content Wrapper - Forces Scroll on Mobile */}
->>>>>>> f3946828e230efbbb13dbb21048dedffe631730c
         <div
           ref={containerRef}
           className="relative bg-gradient-to-br from-slate-200 to-slate-300"
