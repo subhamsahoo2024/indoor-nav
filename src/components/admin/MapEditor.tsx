@@ -16,7 +16,9 @@ import {
   QrCode,
   Copy,
   Check,
+  Download,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type { MapData, Node, Edge, NodeType } from "@/types/navigation";
 import { useImageDimensions } from "@/hooks/useImageDimensions";
 
@@ -145,6 +147,8 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
   // QR Code URL copy state
   const [qrUrlCopied, setQrUrlCopied] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
 
   // Fetch available maps for gateway dropdown
   useEffect(() => {
@@ -481,6 +485,67 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
       console.error("Failed to copy URL:", err);
     }
   }, [generateQRCodeURL]);
+
+  // Download QR Code as PNG
+  const handleDownloadQR = useCallback(() => {
+    if (!qrCodeRef.current || !selectedNode) return;
+
+    const svg = qrCodeRef.current.querySelector("svg");
+    if (!svg) return;
+
+    // Create a canvas element
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set canvas size (add padding)
+    const padding = 40;
+    const qrSize = 256;
+    canvas.width = qrSize + padding * 2;
+    canvas.height = qrSize + padding * 2 + 60; // Extra space for text
+
+    // Fill white background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Convert SVG to image
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      // Draw QR code centered
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+
+      // Add text below QR code
+      ctx.fillStyle = "#1f2937";
+      ctx.font = "bold 16px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(selectedNode.name, canvas.width / 2, qrSize + padding + 30);
+
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText(mapData.name, canvas.width / 2, qrSize + padding + 50);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `QR-${selectedNode.name.replace(/\s+/g, "-")}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+
+      URL.revokeObjectURL(svgUrl);
+    };
+
+    img.src = svgUrl;
+  }, [selectedNode, mapData.name]);
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -960,41 +1025,17 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
               </div>
 
               <p className="text-xs text-gray-600">
-                Generate a URL that opens the navigation app with this location
-                pre-selected as the starting point.
+                Generate a scannable QR code that opens the navigation app with
+                this location pre-selected as the starting point.
               </p>
 
-              <div className="space-y-2">
-                <div className="flex items-stretch gap-2">
-                  <input
-                    type="text"
-                    value={generateQRCodeURL()}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs font-mono text-gray-700 overflow-x-auto"
-                  />
-                  <button
-                    onClick={handleCopyQRUrl}
-                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                  >
-                    {qrUrlCopied ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <p className="text-xs text-gray-500">
-                  💡 Use this URL with a QR code generator to create scannable
-                  codes for physical locations
-                </p>
-              </div>
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+              >
+                <QrCode className="w-4 h-4" />
+                Generate QR Code
+              </button>
             </div>
 
             {/* Connections */}
@@ -1056,6 +1097,109 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
           </div>
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedNode && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowQRModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <QrCode className="w-6 h-6 text-blue-600" />
+                  QR Code Generated
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Scan to navigate to {selectedNode.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* QR Code Display */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 flex flex-col items-center">
+              <div
+                ref={qrCodeRef}
+                className="bg-white p-4 rounded-lg shadow-md"
+              >
+                <QRCodeSVG
+                  value={generateQRCodeURL()}
+                  size={256}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm font-semibold text-gray-800">
+                  {selectedNode.name}
+                </p>
+                <p className="text-xs text-gray-600">{mapData.name}</p>
+              </div>
+            </div>
+
+            {/* URL Display */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-500">URL:</label>
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="text"
+                  value={generateQRCodeURL()}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono text-gray-700 overflow-x-auto"
+                />
+                <button
+                  onClick={handleCopyQRUrl}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                  title="Copy URL"
+                >
+                  {qrUrlCopied ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-600" />
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleDownloadQR}
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <Download className="w-5 h-5" />
+                Download PNG
+              </button>
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center">
+              💡 Print this QR code and place it at the physical location for
+              easy navigation
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
