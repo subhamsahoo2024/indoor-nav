@@ -148,6 +148,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
   // QR Code URL copy state
   const [qrUrlCopied, setQrUrlCopied] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [qrAddressType, setQrAddressType] = useState<'localhost' | 'network'>('localhost');
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
   // Fetch available maps for gateway dropdown
@@ -466,11 +467,18 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
   // Generate QR Code URL for selected node
   const generateQRCodeURL = useCallback(() => {
     if (!selectedNode) return "";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `${origin}/navigate?mapId=${encodeURIComponent(
+    
+    let baseUrl: string;
+    if (qrAddressType === 'network') {
+      baseUrl = 'http://10.10.25.29:3000';
+    } else {
+      baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    }
+    
+    return `${baseUrl}/navigate?mapId=${encodeURIComponent(
       mapData.id
     )}&nodeId=${encodeURIComponent(selectedNode.id)}`;
-  }, [selectedNode, mapData.id]);
+  }, [selectedNode, mapData.id, qrAddressType]);
 
   // Copy QR URL to clipboard
   const handleCopyQRUrl = useCallback(async () => {
@@ -1124,6 +1132,30 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
                 className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Address Type Selector */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setQrAddressType('localhost')}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  qrAddressType === 'localhost'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Localhost
+              </button>
+              <button
+                onClick={() => setQrAddressType('network')}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  qrAddressType === 'network'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Network (10.10.25.29)
               </button>
             </div>
 
