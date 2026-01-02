@@ -13,6 +13,9 @@ import {
   Circle,
   Undo,
   Redo,
+  QrCode,
+  Copy,
+  Check,
 } from "lucide-react";
 import type { MapData, Node, Edge, NodeType } from "@/types/navigation";
 import { useImageDimensions } from "@/hooks/useImageDimensions";
@@ -139,6 +142,9 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
   // Target map nodes for gateway node selection
   const [targetMapNodes, setTargetMapNodes] = useState<Node[]>([]);
   const [loadingTargetNodes, setLoadingTargetNodes] = useState(false);
+
+  // QR Code URL copy state
+  const [qrUrlCopied, setQrUrlCopied] = useState(false);
 
   // Fetch available maps for gateway dropdown
   useEffect(() => {
@@ -452,6 +458,29 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
   // Get selected node
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+
+  // Generate QR Code URL for selected node
+  const generateQRCodeURL = useCallback(() => {
+    if (!selectedNode) return "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return `${origin}/navigate?mapId=${encodeURIComponent(
+      mapData.id
+    )}&nodeId=${encodeURIComponent(selectedNode.id)}`;
+  }, [selectedNode, mapData.id]);
+
+  // Copy QR URL to clipboard
+  const handleCopyQRUrl = useCallback(async () => {
+    const url = generateQRCodeURL();
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setQrUrlCopied(true);
+      setTimeout(() => setQrUrlCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+    }
+  }, [generateQRCodeURL]);
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -919,6 +948,53 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-black"
                 placeholder="Additional info about this node..."
               />
+            </div>
+
+            {/* QR Code Generator */}
+            <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg space-y-3">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-blue-600" />
+                <h4 className="text-sm font-medium text-blue-800">
+                  QR Code for This Location
+                </h4>
+              </div>
+
+              <p className="text-xs text-gray-600">
+                Generate a URL that opens the navigation app with this location
+                pre-selected as the starting point.
+              </p>
+
+              <div className="space-y-2">
+                <div className="flex items-stretch gap-2">
+                  <input
+                    type="text"
+                    value={generateQRCodeURL()}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs font-mono text-gray-700 overflow-x-auto"
+                  />
+                  <button
+                    onClick={handleCopyQRUrl}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                  >
+                    {qrUrlCopied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  💡 Use this URL with a QR code generator to create scannable
+                  codes for physical locations
+                </p>
+              </div>
             </div>
 
             {/* Connections */}

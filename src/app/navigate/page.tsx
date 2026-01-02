@@ -4,6 +4,7 @@
 import { useState, useCallback } from "react";
 import { ArrowLeft, RotateCcw, Home } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import IndoorNavigation from "@/components/IndoorNavigation";
 import LocationSelector from "@/components/LocationSelector";
 
@@ -24,6 +25,11 @@ interface NavigationState {
 // ============================================================================
 
 export default function NavigatePage() {
+  // Read URL query parameters for QR Code detection
+  const searchParams = useSearchParams();
+  const initialMapId = searchParams.get("mapId");
+  const initialNodeId = searchParams.get("nodeId");
+
   // Navigation state
   const [navState, setNavState] = useState<NavigationState>({
     isNavigating: false,
@@ -96,9 +102,9 @@ export default function NavigatePage() {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <div className="w-48 h-48">
-            <img 
-              src="/navigation-logo.png" 
-              alt="Indoor Navigation Logo" 
+            <img
+              src="/navigation-logo.png"
+              alt="Indoor Navigation Logo"
               className="w-full h-full object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300"
             />
           </div>
@@ -115,7 +121,11 @@ export default function NavigatePage() {
         </div>
 
         {/* Location Selector */}
-        <LocationSelector onStartNavigation={handleStartNavigation} />
+        <LocationSelector
+          onStartNavigation={handleStartNavigation}
+          initialStartMapId={initialMapId || undefined}
+          initialStartNodeId={initialNodeId || undefined}
+        />
 
         {/* Footer */}
         <div className="mt-8 sm:mt-12 text-center">

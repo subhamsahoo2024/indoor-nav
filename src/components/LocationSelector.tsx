@@ -13,6 +13,7 @@ import {
   Search,
   X,
   ChevronDown,
+  QrCode,
 } from "lucide-react";
 import type { MapData, Node, NodeType } from "@/types/navigation";
 
@@ -27,6 +28,8 @@ interface LocationSelectorProps {
     endMapId: string,
     endNodeId: string
   ) => void;
+  initialStartMapId?: string;
+  initialStartNodeId?: string;
 }
 
 interface SearchOption {
@@ -304,6 +307,8 @@ function SearchableSelect({
 
 export default function LocationSelector({
   onStartNavigation,
+  initialStartMapId,
+  initialStartNodeId,
 }: LocationSelectorProps) {
   // Data state
   const [isLoading, setIsLoading] = useState(true);
@@ -315,6 +320,25 @@ export default function LocationSelector({
   // Selection state
   const [startLocation, setStartLocation] = useState<SearchOption | null>(null);
   const [endLocation, setEndLocation] = useState<SearchOption | null>(null);
+  const [isStartLockedByQR, setIsStartLockedByQR] = useState(false);
+
+  // Auto-set start location from URL parameters (QR Code)
+  useEffect(() => {
+    if (!initialStartMapId || !initialStartNodeId || allOptions.length === 0) {
+      return;
+    }
+
+    // Find matching option
+    const matchingOption = allOptions.find(
+      (opt) =>
+        opt.mapId === initialStartMapId && opt.nodeId === initialStartNodeId
+    );
+
+    if (matchingOption && !startLocation) {
+      setStartLocation(matchingOption);
+      setIsStartLockedByQR(true);
+    }
+  }, [initialStartMapId, initialStartNodeId, allOptions, startLocation]);
 
   // Fetch all maps and flatten to search options
   useEffect(() => {
@@ -381,6 +405,12 @@ export default function LocationSelector({
   // Validation
   const isValid =
     startLocation && endLocation && startLocation.nodeId !== endLocation.nodeId;
+
+  // Handle clearing QR-locked start location
+  const handleClearStartLocation = useCallback(() => {
+    setStartLocation(null);
+    setIsStartLockedByQR(false);
+  }, []);
 
   // Handle navigation start
   const handleStartNavigation = () => {
@@ -473,11 +503,41 @@ export default function LocationSelector({
 
         {/* Form Content */}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+          {/* QR Code Lock Banner */}
+          {isStartLockedByQR && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4 flex items-start gap-3">
+              <QrCode className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800">
+                  Starting location set by QR Code
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Scanned from:{" "}
+                  <span className="font-semibold">
+                    {startLocation?.nodeName}
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={handleClearStartLocation}
+                className="text-green-600 hover:text-green-800 transition-colors p-1 hover:bg-green-100 rounded"
+                title="Clear QR location"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Start Location - Global Search */}
           <SearchableSelect
             options={allOptions}
             value={startLocation}
-            onChange={setStartLocation}
+            onChange={(option) => {
+              setStartLocation(option);
+              if (option) {
+                setIsStartLockedByQR(false);
+              }
+            }}
             placeholder="Search for starting point..."
             label="Starting Point"
             icon={
