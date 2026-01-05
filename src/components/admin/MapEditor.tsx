@@ -910,21 +910,31 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
                 <option value="canteen">Canteen</option>
                 <option value="library">Library</option>
                 <option value="medical">Medical</option>
-                <option value="restroom_general">
-                  Restroom (Unisex/Common)
-                </option>
                 <option value="restroom_men">Restroom (Men)</option>
                 <option value="restroom_women">Restroom (Women)</option>
                 <option value="staff_room">Staff Room</option>
                 <option value="office_principal">Office - Principal</option>
                 <option value="office_chairman">Office - Chairman</option>
+                <option value="parking">Parking</option>
+                <option value="staff_room">Staff Room</option>
+                <option value="accounts">Accounts</option>
+                <option value="ground">Ground</option>
                 <option value="office_hod_cse">Office - HOD CSE</option>
                 <option value="office_hod_ece">Office - HOD ECE</option>
                 <option value="office_hod_mech">Office - HOD Mechanical</option>
                 <option value="office_hod_civil">Office - HOD Civil</option>
                 <option value="office_hod_it">Office - HOD IT</option>
+                <option value="office_hod_aiml">Office - HOD AIML</option>
+                <option value="office_hod_aids">Office - HOD AIDS</option>
                 <option value="ground">Ground (Playground/Gym)</option>
                 <option value="gate">Gate (Main Entrance/Exit)</option>
+                <option value="gym">Gym</option>
+                <option value="auditorium_kaveri">Kaveri Auditorium</option>
+                <option value="auditorium_parthasarathy">
+                  Parthasarathy Auditorium
+                </option>
+                <option value="drinking_water">Drinking Water</option>
+                <option value="computer_lab">Computer lab</option>
               </select>
             </div>
 
