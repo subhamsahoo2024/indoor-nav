@@ -126,6 +126,18 @@ export default function NavigatePage() {
     []
   );
 
+  // Handle chatbot location selection (sets starting location)
+  const handleBotSetCurrentLocation = useCallback(
+    (nodeId: string, mapId: string) => {
+      // Set the start node from chatbot
+      setNavState((prev) => ({
+        ...prev,
+        startNode: { mapId, nodeId },
+      }));
+    },
+    []
+  );
+
   // Start navigation (manual trigger)
   const handleStartNavigation = useCallback(() => {
     if (navState.startNode && navState.endNode) {
@@ -209,6 +221,7 @@ export default function NavigatePage() {
 
         {/* Location Selector */}
         <LocationSelector
+          key={`${navState.startNode?.mapId}-${navState.startNode?.nodeId}-${navState.endNode?.mapId}-${navState.endNode?.nodeId}`}
           onStartNavigation={handleManualSelection}
           initialStartMapId={navState.startNode?.mapId}
           initialStartNodeId={navState.startNode?.nodeId}
@@ -228,6 +241,7 @@ export default function NavigatePage() {
         {!isLoadingMaps && allMaps.length > 0 && (
           <AIChatbot
             onSetDestination={handleBotSetDestination}
+            onSetCurrentLocation={handleBotSetCurrentLocation}
             allMaps={allMaps}
             currentMapId={navState.startNode?.mapId}
           />
@@ -292,6 +306,7 @@ export default function NavigatePage() {
       {!isLoadingMaps && allMaps.length > 0 && (
         <AIChatbot
           onSetDestination={handleBotSetDestination}
+          onSetCurrentLocation={handleBotSetCurrentLocation}
           allMaps={allMaps}
           currentMapId={navState.startNode?.mapId}
         />
