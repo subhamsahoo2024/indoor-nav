@@ -228,6 +228,7 @@ export default function NavigatePage() {
           initialEndMapId={navState.endNode?.mapId}
           initialEndNodeId={navState.endNode?.nodeId}
           onNavigationTrigger={handleStartNavigation}
+          isQRSource={!!(qrMapId && qrNodeId)}
         />
 
         {/* Footer */}

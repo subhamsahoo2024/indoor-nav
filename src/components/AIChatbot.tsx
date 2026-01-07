@@ -56,8 +56,12 @@ export default function AIChatbot({
   const [hasInteracted, setHasInteracted] = useState(false);
 
   // Location selector state
-  const [selectedFromMapId, setSelectedFromMapId] = useState<string | null>(null);
-  const [selectedFromNodeId, setSelectedFromNodeId] = useState<string | null>(null);
+  const [selectedFromMapId, setSelectedFromMapId] = useState<string | null>(
+    null
+  );
+  const [selectedFromNodeId, setSelectedFromNodeId] = useState<string | null>(
+    null
+  );
   const [fromSearchQuery, setFromSearchQuery] = useState("");
   const [showFromDropdown, setShowFromDropdown] = useState(false);
 
@@ -152,7 +156,7 @@ export default function AIChatbot({
       setSelectedFromNodeId(nodeId);
       setShowFromDropdown(false);
       setFromSearchQuery("");
-      
+
       // Notify parent component
       if (onSetCurrentLocation) {
         onSetCurrentLocation(nodeId, mapId);
@@ -176,9 +180,11 @@ export default function AIChatbot({
   ): Promise<{ node: Node; map: MapData } | null> => {
     // Collect all matching nodes
     const allMatches: Array<{ node: Node; map: MapData }> = [];
-    
+
     for (const map of allMaps) {
-      const matchingNodes = map.nodes.filter((node) => node.category === category);
+      const matchingNodes = map.nodes.filter(
+        (node) => node.category === category
+      );
       for (const node of matchingNodes) {
         allMatches.push({ node, map });
       }
@@ -203,7 +209,9 @@ export default function AIChatbot({
             match.node.id
           );
 
-          const distance = pathResult.success ? pathResult.totalNodes : Infinity;
+          const distance = pathResult.success
+            ? pathResult.totalNodes
+            : Infinity;
           return { ...match, distance };
         } catch (error) {
           return { ...match, distance: Infinity };
@@ -284,7 +292,21 @@ export default function AIChatbot({
           "I'm sorry, I didn't quite understand that. Could you try rephrasing? For example, say 'Canteen', 'Library', 'Boys Restroom', or 'Principal Office'.",
           "bot"
         );
+      } else if (intent == "restroom_general") {
+        addMessage(
+          "Do you want to go to boys restroom or girls restroom?",
+          "bot"
+        );
       } else {
+        // Check if start location is selected
+        if (!selectedFromMapId || !selectedFromNodeId) {
+          addMessage(
+            "Please select the start location first before I can help you navigate.",
+            "bot"
+          );
+          return;
+        }
+
         // Intent recognized - find nearest node by pathfinding distance
         const result = await findNearestNodeByCategory(intent);
 

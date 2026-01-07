@@ -33,6 +33,7 @@ interface LocationSelectorProps {
   initialEndMapId?: string;
   initialEndNodeId?: string;
   onNavigationTrigger?: () => void;
+  isQRSource?: boolean; // True only when start location is from QR code
 }
 
 interface SearchOption {
@@ -315,6 +316,7 @@ export default function LocationSelector({
   initialEndMapId,
   initialEndNodeId,
   onNavigationTrigger,
+  isQRSource = false,
 }: LocationSelectorProps) {
   // Data state
   const [isLoading, setIsLoading] = useState(true);
@@ -342,9 +344,10 @@ export default function LocationSelector({
 
     if (matchingOption && !startLocation) {
       setStartLocation(matchingOption);
-      setIsStartLockedByQR(true);
+      // Only lock as QR if the source is actually from QR code
+      setIsStartLockedByQR(isQRSource);
     }
-  }, [initialStartMapId, initialStartNodeId, allOptions, startLocation]);
+  }, [initialStartMapId, initialStartNodeId, allOptions, startLocation, isQRSource]);
 
   // Auto-set end location from chatbot
   useEffect(() => {
