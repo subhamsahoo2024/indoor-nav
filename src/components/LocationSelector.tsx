@@ -347,7 +347,13 @@ export default function LocationSelector({
       // Only lock as QR if the source is actually from QR code
       setIsStartLockedByQR(isQRSource);
     }
-  }, [initialStartMapId, initialStartNodeId, allOptions, startLocation, isQRSource]);
+  }, [
+    initialStartMapId,
+    initialStartNodeId,
+    allOptions,
+    startLocation,
+    isQRSource,
+  ]);
 
   // Auto-set end location from chatbot
   useEffect(() => {

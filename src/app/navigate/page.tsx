@@ -1,7 +1,7 @@
 // app/navigate/page.tsx
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { Navigation2, RotateCcw, Home, MapPin, Target } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -32,6 +32,20 @@ interface NavigationState {
 // ============================================================================
 
 export default function NavigatePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100">
+          <div className="text-gray-700 text-sm">Loading navigation…</div>
+        </main>
+      }
+    >
+      <NavigatePageContent />
+    </Suspense>
+  );
+}
+
+function NavigatePageContent() {
   // Read URL query parameters for QR Code detection
   const searchParams = useSearchParams();
   const qrMapId = searchParams.get("mapId");
@@ -108,6 +122,8 @@ export default function NavigatePage() {
         ...prev,
         startNode: { mapId: startMapId, nodeId: startNodeId },
         endNode: { mapId: endMapId, nodeId: endNodeId },
+        // Start navigating immediately to avoid double-click race with onNavigationTrigger
+        isNavigating: true,
       }));
     },
     []
@@ -212,10 +228,10 @@ export default function NavigatePage() {
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-            Campus Navigation
+            Smart Navigation
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
-            Find your way around the campus with ease
+            Find your way around the indoor spaces with ease
           </p>
         </div>
 
@@ -228,7 +244,6 @@ export default function NavigatePage() {
           initialEndMapId={navState.endNode?.mapId}
           initialEndNodeId={navState.endNode?.nodeId}
           onNavigationTrigger={handleStartNavigation}
-          isQRSource={!!(qrMapId && qrNodeId)}
         />
 
         {/* Footer */}

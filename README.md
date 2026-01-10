@@ -73,12 +73,15 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your MongoDB connection string:
+Edit `.env` :
 
 ```env
 MONGODB_URI=mongodb://localhost:27017/indoor-navigation
 # or for MongoDB Atlas:
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/indoor-navigation
+
+# Enable database mode (set to "true" to use MongoDB, "false" for mock data)
+NEXT_PUBLIC_USE_DATABASE=true or false
 ```
 
 4. Seed the database (optional):
