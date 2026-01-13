@@ -33,7 +33,6 @@ interface LocationSelectorProps {
   initialEndMapId?: string;
   initialEndNodeId?: string;
   onNavigationTrigger?: () => void;
-  isQRSource?: boolean; // True only when start location is from QR code
 }
 
 interface SearchOption {
@@ -102,6 +101,12 @@ function SearchableSelect({
   // Filter options based on search query and exclusion
   const filteredOptions = useMemo(() => {
     let filtered = options;
+
+    // Filter out generic "Node <number>" names from search dropdown
+    filtered = filtered.filter((opt) => {
+      const isGenericNodeName = /^Node\s+\d+$/.test(opt.nodeName);
+      return !isGenericNodeName;
+    });
 
     // Exclude specified node
     if (excludeNodeId) {
@@ -316,7 +321,6 @@ export default function LocationSelector({
   initialEndMapId,
   initialEndNodeId,
   onNavigationTrigger,
-  isQRSource = false,
 }: LocationSelectorProps) {
   // Data state
   const [isLoading, setIsLoading] = useState(true);
@@ -344,16 +348,9 @@ export default function LocationSelector({
 
     if (matchingOption && !startLocation) {
       setStartLocation(matchingOption);
-      // Only lock as QR if the source is actually from QR code
-      setIsStartLockedByQR(isQRSource);
+      setIsStartLockedByQR(true);
     }
-  }, [
-    initialStartMapId,
-    initialStartNodeId,
-    allOptions,
-    startLocation,
-    isQRSource,
-  ]);
+  }, [initialStartMapId, initialStartNodeId, allOptions, startLocation]);
 
   // Auto-set end location from chatbot
   useEffect(() => {
@@ -395,7 +392,7 @@ export default function LocationSelector({
           })
         );
 
-        // Flatten to SearchOption array
+        // Flatten to SearchOption array (include ALL nodes for QR code matching)
         const options: SearchOption[] = [];
 
         allMaps

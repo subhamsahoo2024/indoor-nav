@@ -29,9 +29,7 @@ import {
   calculateAngle,
 } from "@/hooks/useImageDimensions";
 
-// ============================================================================
 // Types
-// ============================================================================
 
 export type NavigationStatus =
   | "IDLE"
@@ -110,15 +108,32 @@ function MapNode({
 
       {/* Gateway indicator (double ring) */}
       {isGateway && (
-        <circle
-          cx={pixelCoord.x}
-          cy={pixelCoord.y}
-          r={nodeSize + 4}
-          fill="none"
-          stroke="#f59e0b"
-          strokeWidth={2}
-          strokeDasharray="4 2"
-        />
+        <>
+          <circle
+            cx={pixelCoord.x}
+            cy={pixelCoord.y}
+            r={nodeSize + 4}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth={2}
+            strokeDasharray="4 2"
+          />
+          {/* Gateway pictogram to match admin orange marker */}
+          <path
+            d={`M ${pixelCoord.x - 5} ${pixelCoord.y - 6} h10 v12 h-10 z`}
+            fill="#fcd34d"
+            stroke="#d97706"
+            strokeWidth={1.2}
+          />
+          <rect
+            x={pixelCoord.x - 1}
+            y={pixelCoord.y}
+            width={2}
+            height={3}
+            rx={0.5}
+            fill="#92400e"
+          />
+        </>
       )}
 
       {/* Label */}
@@ -556,10 +571,12 @@ export default function IndoorNavigation({
   }, [isPaused, progress]);
 
   const handleRestartSegment = useCallback(() => {
-    // Restart current segment from beginning
+    // Restart current segment from beginning without leaving the map
     setProgress(0);
     pausedProgressRef.current = 0;
     setIsPaused(false);
+    setIsAnimating(false);
+    setStatus("NAVIGATING");
   }, []);
 
   const handleToggleSpeed = useCallback(() => {
@@ -837,16 +854,28 @@ export default function IndoorNavigation({
                 // Use toSvgCoords for SVG-local coordinates
                 const pixelCoord = toSvgCoords(node.x, node.y);
                 const isOnPath = pathNodeIdSet.has(node.id);
-                const isStart =
-                  currentSegmentIndex === 0 &&
-                  node.id === currentSegment?.pathNodeIds[0];
+                const normalizedType =
+                  typeof node.type === "string" ? node.type.toLowerCase() : "";
+                const isGatewayType = normalizedType === "gateway";
+                const isPortalType = normalizedType === "portal";
+                const startNodeId = currentSegment?.pathNodeIds?.[0];
+                const endNodeId =
+                  currentSegment?.pathNodeIds?.[
+                    (currentSegment?.pathNodeIds?.length ?? 1) - 1
+                  ];
+                const isSegmentStart = node.id === startNodeId;
+                const isSegmentEnd = node.id === endNodeId;
+                const isStart = isSegmentStart && currentSegmentIndex === 0;
                 const isEnd =
+                  isSegmentEnd &&
                   currentSegmentIndex ===
-                    (navigationResult?.segments.length ?? 1) - 1 &&
-                  node.id ===
-                    currentSegment?.pathNodeIds[
-                      currentSegment.pathNodeIds.length - 1
-                    ];
+                    (navigationResult?.segments.length ?? 1) - 1;
+                const shouldShowLabel =
+                  showLabels &&
+                  (isSegmentStart ||
+                    isSegmentEnd ||
+                    isGatewayType ||
+                    isPortalType);
 
                 return (
                   <MapNode
@@ -856,8 +885,8 @@ export default function IndoorNavigation({
                     isOnPath={isOnPath}
                     isStart={isStart}
                     isEnd={isEnd}
-                    isGateway={node.type === "GATEWAY"}
-                    showLabel={showLabels && isOnPath}
+                    isGateway={isGatewayType || isPortalType}
+                    showLabel={shouldShowLabel}
                   />
                 );
               })}
@@ -878,17 +907,23 @@ export default function IndoorNavigation({
         </div>
 
         {/* Draggable Floating Control Pill */}
-        {status === "NAVIGATING" && (
+        {(status === "NAVIGATING" || status === "WAITING_AT_GATEWAY") && (
           <motion.div
             drag
             dragMomentum={false}
-            dragConstraints={mapContainerRef}
+            dragConstraints={{
+              top: -window.innerHeight / 2 + 80,
+              bottom: window.innerHeight / 2 - 80,
+              left: -window.innerWidth / 2 + 150,
+              right: window.innerWidth / 2 - 150,
+            }}
             dragElastic={0}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             whileDrag={{ scale: 1.05, cursor: "grabbing" }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-auto cursor-grab"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-auto cursor-grab"
+            style={{ touchAction: "none" }}
           >
             <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-200">
               {/* Drag Handle */}

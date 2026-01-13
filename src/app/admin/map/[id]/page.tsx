@@ -51,29 +51,29 @@ export default function MapEditorPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b shadow-sm">
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header stays blue, main canvas uses a clean white backdrop */}
+      <header className="bg-gradient-to-r from-blue-900 to-blue-700 text-white border-b border-blue-600/40 sticky top-0 z-50 shadow-sm animate-fadeInDown">
         <div className="max-w-full mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <Link
               href="/admin"
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/10 hover:border-white/20"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-slate-200" />
             </Link>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-white">
                 {mapData?.name || "Loading..."}
               </h1>
-              <p className="text-sm text-gray-500">Map ID: {id}</p>
+              <p className="text-sm text-slate-200">Map ID: {id}</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col bg-white">
         {/* Loading State */}
         {isLoading && (
           <div className="flex-1 flex items-center justify-center">
