@@ -383,7 +383,20 @@ export default function IndoorNavigation({
 
           if (firstMap) {
             setCurrentMapData(firstMap);
-            setStatus("NAVIGATING");
+
+            // Check for instant completion (transit map scenario)
+            const firstSegment = result.segments[0];
+            if (firstSegment.pathNodeIds.length <= 1) {
+              // Path has 0 or 1 nodes - instant completion
+              if (firstSegment.transitionTarget && result.segments.length > 1) {
+                setStatus("WAITING_AT_GATEWAY");
+              } else {
+                setStatus("COMPLETED");
+                onComplete?.();
+              }
+            } else {
+              setStatus("NAVIGATING");
+            }
           } else {
             setStatus("ERROR");
             setErrorMessage("Failed to load map");
@@ -525,7 +538,21 @@ export default function IndoorNavigation({
         setCurrentMapData(nextMap);
         setCurrentSegmentIndex(nextIndex);
         setProgress(0);
-        setStatus("NAVIGATING");
+
+        // Check for instant completion (transit map scenario)
+        if (nextSegment.pathNodeIds.length <= 1) {
+          // Path has 0 or 1 nodes - instant completion
+          const isLastSegment =
+            nextIndex === navigationResult.segments.length - 1;
+          if (nextSegment.transitionTarget && !isLastSegment) {
+            setStatus("WAITING_AT_GATEWAY");
+          } else {
+            setStatus("COMPLETED");
+            onComplete?.();
+          }
+        } else {
+          setStatus("NAVIGATING");
+        }
       } else {
         setStatus("ERROR");
         setErrorMessage("Failed to load next map");
@@ -597,6 +624,10 @@ export default function IndoorNavigation({
     }
     if (status === "WAITING_AT_GATEWAY") {
       const gatewayNode = pathNodes[pathNodes.length - 1];
+      // Check if this was instant completion (transit map)
+      if (pathNodes.length <= 1) {
+        return `Transit point - Ready to continue to next floor`;
+      }
       return `At ${gatewayNode?.name ?? "Gateway"} - Ready to continue`;
     }
     if (status === "NAVIGATING") {

@@ -843,14 +843,14 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
                   {/* Node circle */}
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center shadow-md border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center shadow-md border-2 border-white"
                     style={{ backgroundColor: getNodeColor(node.type) }}
                   >
                     <NodeIcon className="w-4 h-4 text-white" />
                   </div>
 
                   {/* Label */}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-white/90 rounded text-xs font-medium whitespace-nowrap shadow text-black">
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-0.5 bg-white/80 rounded text-xs font-medium whitespace-nowrap shadow text-black">
                     {node.name}
                   </div>
                 </div>
