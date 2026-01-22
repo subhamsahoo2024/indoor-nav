@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  TransformWrapper,
+  TransformComponent,
+  useControls,
+} from "react-zoom-pan-pinch";
+import {
   Play,
   Pause,
   RotateCcw,
@@ -16,6 +21,9 @@ import {
   Loader2,
   Move,
   GripHorizontal,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import type { MapData, Node } from "@/types/navigation";
 import type { NavigationResult } from "@/lib/pathfinder";
@@ -175,6 +183,7 @@ function PathLine({ points, isActive }: PathLineProps) {
         strokeWidth={6}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
       {/* Main path */}
       <motion.path
@@ -184,11 +193,42 @@ function PathLine({ points, isActive }: PathLineProps) {
         strokeWidth={4}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
         initial={{ pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
       />
     </g>
+  );
+}
+
+// Zoom Controls Component - uses react-zoom-pan-pinch hook
+function ZoomControls() {
+  const { zoomIn, zoomOut, resetTransform } = useControls();
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      <button
+        onClick={() => zoomIn(0.5)}
+        className="p-3 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
+        title="Zoom In"
+      >
+        <ZoomIn className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => zoomOut(0.5)}
+        className="p-3 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
+        title="Zoom Out"
+      >
+        <ZoomOut className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => resetTransform()}
+        className="p-3 min-h-[44px] min-w-[44px] rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center justify-center"
+        title="Reset View"
+      >
+        <Maximize2 className="w-5 h-5" />
+      </button>
+    </div>
   );
 }
 
@@ -852,230 +892,259 @@ export default function IndoorNavigation({
         )}
       </div>
 
-      {/* Map Container - Native Scrollable Viewport */}
+      {/* Map Container - Zoomable/Pannable Viewport */}
       <div
         ref={mapContainerRef}
-        className="flex-1 overflow-auto bg-gray-200 relative"
-        style={{
-          WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
-        }}
+        className="flex-1 overflow-hidden bg-gray-200 relative"
       >
-        {/* Scroll Hint - Shows for 3 seconds on mount */}
-        <AnimatePresence>
-          {status === "NAVIGATING" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
-              onAnimationComplete={() => {
-                // Auto-hide after 3 seconds
-                setTimeout(() => {
-                  const element = document.querySelector("[data-scroll-hint]");
-                  if (element) {
-                    element.remove();
-                  }
-                }, 3000);
-              }}
-            >
-              <div
-                data-scroll-hint
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500/90 text-white text-sm font-medium rounded-full shadow-lg backdrop-blur-sm"
-              >
-                <Move className="w-4 h-4" />
-                <span>Scroll to Pan</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Large Content Wrapper - Forces Scroll on Mobile */}
-        <div
-          ref={containerRef}
-          className={`relative bg-gradient-to-br from-slate-200 to-slate-300 transition-opacity duration-500 ${
-            isMapImageLoaded ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            // Large minimum dimensions to trigger scrolling on mobile
-            minWidth: "1200px",
-            minHeight: "800px",
-            width: Math.max(imageBounds.containerWidth || 1200, 1200),
-            height: Math.max(imageBounds.containerHeight || 800, 800),
-            backgroundImage: getMapImageSrc(
-              currentMapData?.mapImage,
-              currentMapData?.imageUrl,
-            )
-              ? `url(${getMapImageSrc(currentMapData?.mapImage, currentMapData?.imageUrl)})`
-              : undefined,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "top left",
-          }}
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={4}
+          centerOnInit={true}
+          limitToBounds={false}
+          doubleClick={{ disabled: false, mode: "zoomIn" }}
+          panning={{ velocityDisabled: true }}
+          wheel={{ step: 0.1 }}
         >
-          {/* Map Image Loading Spinner - shown until image is fully loaded */}
-          {!isMapImageLoaded && status !== "LOADING" && status !== "IDLE" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-200 z-20">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-                <p className="text-slate-600 font-medium">Loading map...</p>
-              </div>
-            </div>
-          )}
+          {/* Zoom Controls */}
+          <ZoomControls />
 
-          {/* SVG Overlay - positioned and sized to match ACTUAL rendered image */}
-          {/* Only render when both dimensions are ready AND map image is loaded */}
-          {isReady && isMapImageLoaded && (
-            <svg
-              className="absolute pointer-events-none"
-              style={{
-                // Position overlay exactly where the image is rendered
-                left: imageBounds.offsetX,
-                top: imageBounds.offsetY,
-                width: imageBounds.width,
-                height: imageBounds.height,
-              }}
-              viewBox={`0 0 ${imageBounds.width} ${imageBounds.height}`}
-              preserveAspectRatio="none"
-            >
-              {/* Defs for gradients */}
-              <defs>
-                <radialGradient id="walkerGlow">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-
-              {/* Path line */}
-              {pathPixelCoords.length >= 2 && (
-                <PathLine points={pathPixelCoords} isActive={isAnimating} />
-              )}
-
-              {/* Nodes */}
-              {nodesToRender.map((node) => {
-                // Use toSvgCoords for SVG-local coordinates
-                const pixelCoord = toSvgCoords(node.x, node.y);
-                const isOnPath = pathNodeIdSet.has(node.id);
-                const normalizedType =
-                  typeof node.type === "string" ? node.type.toLowerCase() : "";
-                const isGatewayType = normalizedType === "gateway";
-                const isPortalType = normalizedType === "portal";
-                const startNodeId = currentSegment?.pathNodeIds?.[0];
-                const endNodeId =
-                  currentSegment?.pathNodeIds?.[
-                    (currentSegment?.pathNodeIds?.length ?? 1) - 1
-                  ];
-                const isSegmentStart = node.id === startNodeId;
-                const isSegmentEnd = node.id === endNodeId;
-                const isStart = isSegmentStart && currentSegmentIndex === 0;
-                const isEnd =
-                  isSegmentEnd &&
-                  currentSegmentIndex ===
-                    (navigationResult?.segments.length ?? 1) - 1;
-                const shouldShowLabel =
-                  showLabels &&
-                  (isSegmentStart ||
-                    isSegmentEnd ||
-                    isGatewayType ||
-                    isPortalType);
-
-                return (
-                  <MapNode
-                    key={node.id}
-                    node={node}
-                    pixelCoord={pixelCoord}
-                    isOnPath={isOnPath}
-                    isStart={isStart}
-                    isEnd={isEnd}
-                    isGateway={isGatewayType || isPortalType}
-                    showLabel={shouldShowLabel}
-                  />
-                );
-              })}
-
-              {/* Ghost Walker */}
-              {pathPixelCoords.length > 0 && status === "NAVIGATING" && (
-                <GhostWalker
-                  position={walkerPosition}
-                  angle={walkerAngle}
-                  isMoving={isAnimating}
-                />
-              )}
-            </svg>
-          )}
-
-          {/* Overlay UI (only for loading) */}
-          <AnimatePresence>{renderOverlay()}</AnimatePresence>
-        </div>
-
-        {/* Draggable Floating Control Pill */}
-        {(status === "NAVIGATING" || status === "WAITING_AT_GATEWAY") && (
-          <motion.div
-            drag
-            dragMomentum={false}
-            dragConstraints={{
-              top: -window.innerHeight / 2 + 80,
-              bottom: window.innerHeight / 2 - 80,
-              left: -window.innerWidth / 2 + 150,
-              right: window.innerWidth / 2 - 150,
+          <TransformComponent
+            wrapperStyle={{
+              width: "100%",
+              height: "100%",
             }}
-            dragElastic={0}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            whileDrag={{ scale: 1.05, cursor: "grabbing" }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-auto cursor-grab"
-            style={{ touchAction: "none" }}
+            contentStyle={{
+              width: "fit-content",
+              height: "fit-content",
+            }}
           >
-            <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-200">
-              {/* Drag Handle */}
-              <div className="flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing">
-                <GripHorizontal className="w-5 h-5" />
-              </div>
+            {/* Zoom/Pan Hint - Shows for 3 seconds on mount */}
+            <AnimatePresence>
+              {status === "NAVIGATING" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+                  onAnimationComplete={() => {
+                    // Auto-hide after 3 seconds
+                    setTimeout(() => {
+                      const element =
+                        document.querySelector("[data-scroll-hint]");
+                      if (element) {
+                        element.remove();
+                      }
+                    }, 3000);
+                  }}
+                >
+                  <div
+                    data-scroll-hint
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500/90 text-white text-sm font-medium rounded-full shadow-lg backdrop-blur-sm"
+                  >
+                    <Move className="w-4 h-4" />
+                    <span>Pinch to Zoom • Drag to Pan</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              {/* Restart Button - Touch Friendly */}
-              <button
-                onClick={handleRestartSegment}
-                className="p-3 min-h-[44px] min-w-[44px] rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
-                title="Restart segment"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </button>
-
-              {/* Play/Pause Button - Large and Center */}
-              <button
-                onClick={handlePlayPause}
-                className={`p-4 min-h-[56px] min-w-[56px] rounded-2xl transition-all flex items-center justify-center ${
-                  isPaused
-                    ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-                title={isPaused ? "Play" : "Pause"}
-              >
-                {isPaused ? (
-                  <Play className="w-6 h-6" fill="currentColor" />
-                ) : (
-                  <Pause className="w-6 h-6" fill="currentColor" />
+            {/* Large Content Wrapper - Forces Scroll on Mobile */}
+            <div
+              ref={containerRef}
+              className={`relative bg-gradient-to-br from-slate-200 to-slate-300 transition-opacity duration-500 ${
+                isMapImageLoaded ? "opacity-100" : "opacity-0"
+              }`}
+              style={{
+                // Large minimum dimensions to trigger scrolling on mobile
+                minWidth: "1200px",
+                minHeight: "800px",
+                width: Math.max(imageBounds.containerWidth || 1200, 1200),
+                height: Math.max(imageBounds.containerHeight || 800, 800),
+                backgroundImage: getMapImageSrc(
+                  currentMapData?.mapImage,
+                  currentMapData?.imageUrl,
+                )
+                  ? `url(${getMapImageSrc(currentMapData?.mapImage, currentMapData?.imageUrl)})`
+                  : undefined,
+                backgroundSize: "contain",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "top left",
+              }}
+            >
+              {/* Map Image Loading Spinner - shown until image is fully loaded */}
+              {!isMapImageLoaded &&
+                status !== "LOADING" &&
+                status !== "IDLE" && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-200 z-20">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+                      <p className="text-slate-600 font-medium">
+                        Loading map...
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </button>
 
-              {/* Speed Toggle Button - Touch Friendly */}
-              <button
-                onClick={handleToggleSpeed}
-                className={`flex items-center gap-1 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
-                  speedMultiplier === 3
-                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-                title="Toggle speed"
-              >
-                <Gauge className="w-4 h-4" />
-                <span>{speedMultiplier === 3 ? "2" : "1"}x</span>
-              </button>
+              {/* SVG Overlay - positioned and sized to match ACTUAL rendered image */}
+              {/* Only render when both dimensions are ready AND map image is loaded */}
+              {isReady && isMapImageLoaded && (
+                <svg
+                  className="absolute pointer-events-none"
+                  style={{
+                    // Position overlay exactly where the image is rendered
+                    left: imageBounds.offsetX,
+                    top: imageBounds.offsetY,
+                    width: imageBounds.width,
+                    height: imageBounds.height,
+                  }}
+                  viewBox={`0 0 ${imageBounds.width} ${imageBounds.height}`}
+                  preserveAspectRatio="none"
+                >
+                  {/* Defs for gradients */}
+                  <defs>
+                    <radialGradient id="walkerGlow">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+
+                  {/* Path line */}
+                  {pathPixelCoords.length >= 2 && (
+                    <PathLine points={pathPixelCoords} isActive={isAnimating} />
+                  )}
+
+                  {/* Nodes */}
+                  {nodesToRender.map((node) => {
+                    // Use toSvgCoords for SVG-local coordinates
+                    const pixelCoord = toSvgCoords(node.x, node.y);
+                    const isOnPath = pathNodeIdSet.has(node.id);
+                    const normalizedType =
+                      typeof node.type === "string"
+                        ? node.type.toLowerCase()
+                        : "";
+                    const isGatewayType = normalizedType === "gateway";
+                    const isPortalType = normalizedType === "portal";
+                    const startNodeId = currentSegment?.pathNodeIds?.[0];
+                    const endNodeId =
+                      currentSegment?.pathNodeIds?.[
+                        (currentSegment?.pathNodeIds?.length ?? 1) - 1
+                      ];
+                    const isSegmentStart = node.id === startNodeId;
+                    const isSegmentEnd = node.id === endNodeId;
+                    const isStart = isSegmentStart && currentSegmentIndex === 0;
+                    const isEnd =
+                      isSegmentEnd &&
+                      currentSegmentIndex ===
+                        (navigationResult?.segments.length ?? 1) - 1;
+                    const shouldShowLabel =
+                      showLabels &&
+                      (isSegmentStart ||
+                        isSegmentEnd ||
+                        isGatewayType ||
+                        isPortalType);
+
+                    return (
+                      <MapNode
+                        key={node.id}
+                        node={node}
+                        pixelCoord={pixelCoord}
+                        isOnPath={isOnPath}
+                        isStart={isStart}
+                        isEnd={isEnd}
+                        isGateway={isGatewayType || isPortalType}
+                        showLabel={shouldShowLabel}
+                      />
+                    );
+                  })}
+
+                  {/* Ghost Walker */}
+                  {pathPixelCoords.length > 0 && status === "NAVIGATING" && (
+                    <GhostWalker
+                      position={walkerPosition}
+                      angle={walkerAngle}
+                      isMoving={isAnimating}
+                    />
+                  )}
+                </svg>
+              )}
+
+              {/* Overlay UI (only for loading) */}
+              <AnimatePresence>{renderOverlay()}</AnimatePresence>
             </div>
-          </motion.div>
-        )}
+          </TransformComponent>
+        </TransformWrapper>
       </div>
+
+      {/* Draggable Floating Control Pill */}
+      {(status === "NAVIGATING" || status === "WAITING_AT_GATEWAY") && (
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragConstraints={{
+            top: -window.innerHeight / 2 + 80,
+            bottom: window.innerHeight / 2 - 80,
+            left: -window.innerWidth / 2 + 150,
+            right: window.innerWidth / 2 - 150,
+          }}
+          dragElastic={0}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 20, opacity: 0 }}
+          whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-auto cursor-grab"
+          style={{ touchAction: "none" }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-200">
+            {/* Drag Handle */}
+            <div className="flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing">
+              <GripHorizontal className="w-5 h-5" />
+            </div>
+
+            {/* Restart Button - Touch Friendly */}
+            <button
+              onClick={handleRestartSegment}
+              className="p-3 min-h-[44px] min-w-[44px] rounded-xl hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
+              title="Restart segment"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+
+            {/* Play/Pause Button - Large and Center */}
+            <button
+              onClick={handlePlayPause}
+              className={`p-4 min-h-[56px] min-w-[56px] rounded-2xl transition-all flex items-center justify-center ${
+                isPaused
+                  ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              title={isPaused ? "Play" : "Pause"}
+            >
+              {isPaused ? (
+                <Play className="w-6 h-6" fill="currentColor" />
+              ) : (
+                <Pause className="w-6 h-6" fill="currentColor" />
+              )}
+            </button>
+
+            {/* Speed Toggle Button - Touch Friendly */}
+            <button
+              onClick={handleToggleSpeed}
+              className={`flex items-center gap-1 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
+                speedMultiplier === 3
+                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+              title="Toggle speed"
+            >
+              <Gauge className="w-4 h-4" />
+              <span>{speedMultiplier === 3 ? "2" : "1"}x</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Smooth Notifications */}
       <AnimatePresence>
