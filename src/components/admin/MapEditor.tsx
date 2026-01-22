@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
   Download,
+  Eye,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MapData, Node, Edge, NodeType } from "@/types/navigation";
@@ -150,6 +151,9 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
   const [showQRModal, setShowQRModal] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
+  // Toggle visibility of nodes and edges
+  const [showNodesAndEdges, setShowNodesAndEdges] = useState(true);
+
   // Fetch available maps for gateway dropdown
   useEffect(() => {
     const fetchMaps = async () => {
@@ -208,7 +212,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
     if (history.length > 1) {
       setHasUnsavedChanges(true);
     }
-  }, [nodes, adjacencyList]);
+  }, [nodes, adjacencyList, history]);
 
   // Push current state to history
   const pushHistory = useCallback(() => {
@@ -594,8 +598,11 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
             setMode("select");
             setConnectSourceId(null);
           }}
+          disabled={!showNodesAndEdges}
           className={`p-3 rounded-lg transition-colors ${
-            mode === "select"
+            !showNodesAndEdges
+              ? "opacity-50 cursor-not-allowed text-gray-400"
+              : mode === "select"
               ? "bg-blue-100 text-blue-600"
               : "hover:bg-gray-100 text-gray-600"
           }`}
@@ -608,8 +615,11 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
             setMode("add");
             setConnectSourceId(null);
           }}
+          disabled={!showNodesAndEdges}
           className={`p-3 rounded-lg transition-colors ${
-            mode === "add"
+            !showNodesAndEdges
+              ? "opacity-50 cursor-not-allowed text-gray-400"
+              : mode === "add"
               ? "bg-green-100 text-green-600"
               : "hover:bg-gray-100 text-gray-600"
           }`}
@@ -622,14 +632,36 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
             setMode("connect");
             setConnectSourceId(null);
           }}
+          disabled={!showNodesAndEdges}
           className={`p-3 rounded-lg transition-colors ${
-            mode === "connect"
+            !showNodesAndEdges
+              ? "opacity-50 cursor-not-allowed text-gray-400"
+              : mode === "connect"
               ? "bg-purple-100 text-purple-600"
               : "hover:bg-gray-100 text-gray-600"
           }`}
           title="Connect Nodes (C) - Click two nodes"
         >
           <LinkIcon className="w-5 h-5" />
+        </button>
+
+        <div className="border-t w-8 my-2" />
+
+        {/* Show/Hide Nodes and Edges */}
+        <button
+          onClick={() => setShowNodesAndEdges(!showNodesAndEdges)}
+          className={`p-3 rounded-lg transition-colors ${
+            showNodesAndEdges
+              ? "bg-indigo-100 text-indigo-600"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+          title={
+            showNodesAndEdges ? "Hide Nodes & Edges" : "Show Nodes & Edges"
+          }
+        >
+          <Eye
+            className={`w-5 h-5 ${!showNodesAndEdges ? "opacity-50" : ""}`}
+          />
         </button>
 
         <div className="border-t w-8 my-2" />
@@ -736,7 +768,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
           )}
 
           {/* SVG Overlay - positioned over the actual rendered image */}
-          {isReady && (
+          {isReady && showNodesAndEdges && (
             <svg
               className="absolute pointer-events-none"
               style={{
@@ -809,6 +841,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
           {/* Nodes */}
           {isReady &&
+            showNodesAndEdges &&
             nodes.map((node) => {
               const pos = toPixels(node.x, node.y);
               const isSelected = node.id === selectedNodeId;
@@ -861,8 +894,20 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
       {/* Properties Sidebar */}
       <div className="w-80 bg-white border-l flex flex-col">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">Node Properties</h3>
+          {editingNode && (
+            <button
+              onClick={() => {
+                setEditingNode(null);
+                setSelectedNodeId(null);
+              }}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Close properties panel"
+            >
+              <X className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+            </button>
+          )}
         </div>
 
         {editingNode ? (

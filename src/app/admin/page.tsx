@@ -53,7 +53,7 @@ export default function AdminPage() {
       if (result.success) {
         setMaps(result.data);
       } else {
-        setError(result.error || "Failed to fetch maps");
+        setError("Failed to fetch maps");
       }
     } catch (err) {
       setError("Failed to connect to server");

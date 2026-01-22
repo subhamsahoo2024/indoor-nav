@@ -276,6 +276,12 @@ export default function IndoorNavigation({
   const [currentMapData, setCurrentMapData] = useState<MapData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Notification state
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationType, setNotificationType] = useState<
+    "next-map" | "completed"
+  >("next-map");
+
   // Animation state
   const [progress, setProgress] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -504,6 +510,17 @@ export default function IndoorNavigation({
     isPaused,
   ]);
 
+  // Auto-hide notification after 4 seconds
+  useEffect(() => {
+    if (!showNotification) return;
+
+    const timer = setTimeout(() => {
+      setShowNotification(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [showNotification]);
+
   // ============================================================================
   // Handlers
   // ============================================================================
@@ -516,9 +533,13 @@ export default function IndoorNavigation({
 
     if (isLastSegment) {
       setStatus("COMPLETED");
+      setShowNotification(true);
+      setNotificationType("completed");
       onComplete?.();
     } else if (currentSegment.transitionTarget) {
       setStatus("WAITING_AT_GATEWAY");
+      setShowNotification(true);
+      setNotificationType("next-map");
     }
   }, [navigationResult, currentSegment, currentSegmentIndex, onComplete]);
 
@@ -1005,6 +1026,61 @@ export default function IndoorNavigation({
           </motion.div>
         )}
       </div>
+
+      {/* Smooth Notifications */}
+      <AnimatePresence>
+        {showNotification && notificationType === "next-map" && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none px-4"
+          >
+            <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-2xl shadow-2xl">
+              <LogIn className="w-6 h-6" />
+              <div>
+                <p className="text-sm text-amber-50">
+                  Proceed to the next map to continue your route
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {showNotification && notificationType === "completed" && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none px-4"
+          >
+            <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-2xl shadow-2xl">
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              >
+                <CheckCircle2 className="w-6 h-6" />
+              </motion.div>
+              <div>
+                <p className="font-bold text-lg">Destination Reached</p>
+                <p className="text-sm text-green-50">
+                  You have arrived at your destination
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
