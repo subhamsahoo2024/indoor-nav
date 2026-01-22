@@ -14,31 +14,35 @@ export default function LandingPage() {
 
       {/* Content */}
       <div className="relative z-10 text-center max-w-4xl mx-auto">
-        {/* Logo/Icon */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
-              <Navigation className="w-12 h-12 text-white" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
+        {/* Logo Image */}
+        {/* STEP 1: Changed 'mb-8' to 'mb-2' to reduce space BELOW the logo */}
+        <div className="mb-4 flex justify-center">
+          
+          {/* STEP 2: Removed 'h-48' and 'sm:h-64' fixed heights. 
+             This removes empty space ABOVE/BELOW if your image is not perfectly square. */}
+          <div className="w-48 sm:w-64 relative">
+            <img
+              src="/navx lg.png"
+              alt="NAVX LG"
+              /* Changed to 'h-auto' to fit content naturally */
+              className="w-full h-auto drop-shadow-2xl" 
+            />
           </div>
         </div>
 
         {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-          College Indoor
-          <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-            Navigation System
-          </span>
-        </h1>
+<h1 className="font-[family-name:var(--font-orbitron)] text-5xl md:text-6xl font-black text-white mb-4 tracking-wider uppercase">
+    CIT College Indoor
+  <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+    Navigation System
+  </span>
+</h1>
 
-        {/* Subtitle */}
-        <p className="text-xl text-slate-400 mb-16 max-w-2xl mx-auto">
-          Navigate through campus buildings with ease. Find classrooms, offices,
-          and facilities without getting lost.
-        </p>
+{/* Subtitle */}
+<p className="font-[family-name:var(--font-space-grotesk)] text-xl text-slate-400 mb-16 max-w-2xl mx-auto tracking-wide">
+  Navigate through campus buildings with ease. Find classrooms, offices,
+  and facilities without getting lost.
+</p>
 
         {/* Cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
