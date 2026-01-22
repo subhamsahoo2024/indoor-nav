@@ -17,6 +17,7 @@ import {
   LogOut,
 } from "lucide-react";
 import type { MapData } from "@/types/navigation";
+import PinVerificationModal from "@/components/PinVerificationModal";
 
 /**
  * Admin Dashboard - Map List Page
@@ -39,6 +40,11 @@ export default function AdminPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+
+  // PIN verification for delete
+  const [showDeletePinModal, setShowDeletePinModal] = useState(false);
+  const [deletingMapId, setDeletingMapId] = useState<string | null>(null);
+  const [deletingMapName, setDeletingMapName] = useState<string | null>(null);
 
   // Fetch all maps on mount
   useEffect(() => {
@@ -154,21 +160,37 @@ export default function AdminPage() {
       return;
     }
 
+    // Prompt for PIN
+    setDeletingMapId(mapId);
+    setDeletingMapName(mapName);
+    setShowDeletePinModal(true);
+  };
+
+  const handleDeleteWithPin = async (pin: string) => {
+    setShowDeletePinModal(false);
+
+    if (!deletingMapId) return;
+
     try {
-      const response = await fetch(`/api/maps/${mapId}`, {
+      const response = await fetch(`/api/maps/${deletingMapId}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        setMaps((prev) => prev.filter((m) => m.id !== mapId));
+        setMaps((prev) => prev.filter((m) => m.id !== deletingMapId));
       } else {
         alert(result.error || "Failed to delete map");
       }
     } catch (err) {
       alert("Failed to delete map");
       console.error(err);
+    } finally {
+      setDeletingMapId(null);
+      setDeletingMapName(null);
     }
   };
 
@@ -501,6 +523,19 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* PIN Verification Modal for Delete */}
+      <PinVerificationModal
+        isOpen={showDeletePinModal}
+        onClose={() => {
+          setShowDeletePinModal(false);
+          setDeletingMapId(null);
+          setDeletingMapName(null);
+        }}
+        onVerify={handleDeleteWithPin}
+        title="Delete Map"
+        message={`Enter 4-digit PIN to delete "${deletingMapName}"`}
+      />
     </div>
   );
 }

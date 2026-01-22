@@ -47,14 +47,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 /**
  * PUT /api/maps/[id]
  * Update a map (full replacement)
- * Input: Full MapData object
+ * Input: Full MapData object + pin for verification
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
     const { id } = await params;
-    const body: Partial<MapData> = await request.json();
+    const body: Partial<MapData> & { pin?: string } = await request.json();
+
+    // Verify PIN
+    const REQUIRED_PIN = "2026";
+    if (!body.pin || body.pin !== REQUIRED_PIN) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid or missing PIN",
+        },
+        { status: 403 }
+      );
+    }
 
     // Find existing map
     const existingMap = await MapModel.findOne({ id });
@@ -98,12 +110,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 /**
  * DELETE /api/maps/[id]
  * Delete a map
+ * Requires PIN for verification
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
     const { id } = await params;
+    const body = await request.json();
+
+    // Verify PIN
+    const REQUIRED_PIN = "2026";
+    if (!body.pin || body.pin !== REQUIRED_PIN) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid or missing PIN",
+        },
+        { status: 403 }
+      );
+    }
+
     const result = await MapModel.deleteOne({ id });
 
     if (result.deletedCount === 0) {

@@ -22,6 +22,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import type { MapData, Node, Edge, NodeType } from "@/types/navigation";
 import { useImageDimensions } from "@/hooks/useImageDimensions";
+import PinVerificationModal from "@/components/PinVerificationModal";
 
 // ============================================================================
 // Types
@@ -153,6 +154,9 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
 
   // Toggle visibility of nodes and edges
   const [showNodesAndEdges, setShowNodesAndEdges] = useState(true);
+
+  // PIN verification for save
+  const [showPinModal, setShowPinModal] = useState(false);
 
   // Fetch available maps for gateway dropdown
   useEffect(() => {
@@ -430,8 +434,14 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
     [editingNode]
   );
 
-  // Save changes
-  const handleSave = async () => {
+  // Save changes - prompt for PIN
+  const handleSave = () => {
+    setShowPinModal(true);
+  };
+
+  // Perform save after PIN verification
+  const handleSaveWithPin = async (pin: string) => {
+    setShowPinModal(false);
     setIsSaving(true);
 
     try {
@@ -444,7 +454,7 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
       const response = await fetch(`/api/maps/${mapData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedMapData),
+        body: JSON.stringify({ ...updatedMapData, pin }),
       });
 
       const result = await response.json();
@@ -1327,6 +1337,15 @@ export default function MapEditor({ mapData, onMapUpdate }: MapEditorProps) {
           </div>
         </div>
       )}
+
+      {/* PIN Verification Modal */}
+      <PinVerificationModal
+        isOpen={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onVerify={handleSaveWithPin}
+        title="Save Map"
+        message="Enter 4-digit PIN to save changes to the map"
+      />
     </div>
   );
 }
