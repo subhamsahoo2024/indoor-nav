@@ -1,10 +1,12 @@
 // app/page.tsx
 import Link from "next/link";
-import { Compass, Settings, MapPin, Navigation } from "lucide-react";
+import { Compass, Settings } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col items-center justify-center p-6">
+    // Changed min-h-screen to h-screen and added overflow-hidden to prevent scrolling
+    <main className="h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col items-center justify-center p-4 overflow-hidden relative">
+      
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
@@ -12,11 +14,12 @@ export default function LandingPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 text-center max-w-4xl mx-auto">
-        {/* Logo */}
-        <div className="flex justify-center mb-8 animate-fadeInUp delay-100">
-          <div className="w-40 h-40 sm:w-48 sm:h-48">
+      {/* Content Container - Uses flex-1 and justify-between to fit the window */}
+      <div className="relative z-10 text-center max-w-4xl mx-auto flex flex-col h-full justify-center py-4">
+        
+        {/* Logo Section - Reduced margins to pull content up */}
+        <div className="flex justify-center mb-2 animate-fadeInUp delay-100">
+          <div className="w-28 h-28 sm:w-36 sm:h-36"> 
             <img
               src="/home-logo.png"
               alt="Indoor Navigation Logo"
@@ -25,57 +28,40 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Title */}
-<h1 className="font-[family-name:var(--font-orbitron)] text-5xl md:text-6xl font-black text-white mb-4 tracking-wider uppercase">
-    CIT College Indoor
-  <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-    Navigation System
-  </span>
-</h1>
+        {/* Title Section - Reduced mb-2 to pull subtitle closer */}
+        <div className="mb-2">
+          <h1 className="font-[family-name:var(--font-russo-one)] text-2xl md:text-4xl font-black text-white mb-1 tracking-wider uppercase leading-tight">
+              NavX Indoor
+            <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+              Navigation System
+            </span>
+          </h1>
 
-{/* Subtitle */}
-<p className="font-[family-name:var(--font-space-grotesk)] text-xl text-slate-400 mb-16 max-w-2xl mx-auto tracking-wide">
-  Navigate through campus buildings with ease. Find classrooms, offices,
-  and facilities without getting lost.
-</p>
+          <p className="font-[family-name:var(--font-exo-2)] text-base md:text-lg text-slate-400 max-w-xl mx-auto tracking-wide">
+            Navigate through campus buildings with ease. Find classrooms, offices,
+            and facilities without getting lost.
+          </p>
+        </div>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        {/* Cards Section - Balanced gap and padding to fit height */}
+        <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto my-4">
           {/* Find My Way Card */}
           <Link href="/navigate" className="group">
-            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20">
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* Content */}
+            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/20 h-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="relative z-10">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
-                  <Compass className="w-8 h-8 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <Compass className="w-6 h-6 text-white" />
                 </div>
-
-                <h2 className="text-2xl font-bold text-white mb-3">
-                  Find My Way
-                </h2>
-
-                <p className="text-slate-400 mb-6">
+                <h2 className="text-xl font-bold text-white mb-2">Find My Way</h2>
+                <p className="text-sm text-slate-400 mb-4 line-clamp-2">
                   Select your starting point and destination to get turn-by-turn
-                  indoor navigation across campus buildings.
+                  indoor navigation.
                 </p>
-
-                <div className="inline-flex items-center gap-2 text-blue-400 font-semibold group-hover:text-cyan-400 transition-colors">
+                <div className="inline-flex items-center gap-2 text-sm text-blue-400 font-semibold group-hover:text-cyan-400 transition-colors">
                   <span>Start Navigating</span>
-                  <svg
-                    className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
+                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </div>
               </div>
@@ -84,39 +70,21 @@ export default function LandingPage() {
 
           {/* Admin Dashboard Card */}
           <Link href="/admin" className="group">
-            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20">
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* Content */}
+            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-xl hover:shadow-purple-500/20 h-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="relative z-10">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-shadow">
-                  <Settings className="w-8 h-8 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <Settings className="w-6 h-6 text-white" />
                 </div>
-
-                <h2 className="text-2xl font-bold text-white mb-3">
-                  Admin Dashboard
-                </h2>
-
-                <p className="text-slate-400 mb-6">
-                  Manage maps, nodes, and navigation routes. Configure building
-                  layouts and gateway connections.
+                <h2 className="text-xl font-bold text-white mb-2">Admin Dashboard</h2>
+                <p className="text-sm text-slate-400 mb-4 line-clamp-2">
+                  Manage maps, nodes, and connections. Configure building
+                  layouts easily.
                 </p>
-
-                <div className="inline-flex items-center gap-2 text-purple-400 font-semibold group-hover:text-pink-400 transition-colors">
+                <div className="inline-flex items-center gap-2 text-sm text-purple-400 font-semibold group-hover:text-pink-400 transition-colors">
                   <span>Open Dashboard</span>
-                  <svg
-                    className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
+                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </div>
               </div>
@@ -124,10 +92,11 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Footer */}
-        <div className="mt-16 text-slate-500 text-sm">
-          <p>Multi-Map Navigation with Gateway Nodes</p>
-          <p className="mt-1 text-slate-600">GPS-free indoor positioning</p>
+        {/* Footer - Positioned closer to the bottom section */}
+        <div className="mt-0 text-center relative z-10">
+          <p className="text-slate-500 text-[10px] sm:text-xs font-medium tracking-wide">
+            Developed by Thejas SB, Subham Sahoo S, Sriram B @ Techsprint GDGoC-CIT
+          </p>
         </div>
       </div>
     </main>

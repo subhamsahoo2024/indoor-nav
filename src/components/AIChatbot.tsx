@@ -222,13 +222,15 @@ export default function AIChatbot({
   const fab = (
     <motion.button
       onClick={toggleChat}
+      // REMOVED THE RED CLOSE BUTTON BY ADDING 'hidden' class when isOpen is true
       className={`fixed bottom-6 right-6 z-[9999] w-20 h-20 rounded-full shadow-2xl flex items-center justify-center text-white transition-all ${
-        isOpen ? "bg-red-500 hover:bg-red-600" : "bg-transparent"
+        isOpen ? "hidden pointer-events-none" : "bg-transparent"
       }`}
       whileHover={{ scale: 1.15 }}
       whileTap={{ scale: 0.9 }}
     >
-      {isOpen ? <X size={28} /> : (
+      {/* Bot only renders when chat is closed */}
+      {!isOpen && (
         <>
           <motion.span
             className="absolute inset-0 flex items-center justify-center"
@@ -281,10 +283,11 @@ export default function AIChatbot({
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><Sparkles size={20} /></div>
                   <div>
-                    <h3 className="font-semibold text-lg">Campus Assistant</h3>
+                    <h3 className="font-semibold text-lg">NavX Assistant</h3>
                     <p className="text-xs text-indigo-100">AI-Powered Navigation</p>
                   </div>
                 </div>
+                {/* Users still use this X button to close the chat */}
                 <button onClick={toggleChat} className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center"><X size={20} /></button>
               </div>
 
@@ -318,7 +321,6 @@ export default function AIChatbot({
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><MapPin size={16} /> From</label>
                   <div className="relative">
-                    {/* ONLY OPEN DROPDOWN ON CLICK OF THIS BOX */}
                     <div onClick={() => setShowFromDropdown(!showFromDropdown)} className={`w-full px-4 py-2.5 border rounded-lg bg-gray-50 cursor-pointer flex items-center gap-2 ${showFromDropdown ? "border-indigo-500 ring-2 ring-indigo-500 bg-white" : "border-gray-200"}`}>
                       <Search className="w-4 h-4 text-gray-400" />
                       {showFromDropdown ? (
@@ -329,14 +331,12 @@ export default function AIChatbot({
                       <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showFromDropdown ? "rotate-180" : ""}`} />
                     </div>
 
-                    {/* UPDATED: DROPDOWN OPENS UPWARD ABOVE THE BOX */}
                     {showFromDropdown && (
                       <div className="absolute bottom-full mb-2 z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
                         {Object.entries(groupedLocations).map(([mapName, locs]) => (
                           <div key={mapName}>
                             <div className="px-3 py-2 bg-gray-50 text-xs font-bold text-gray-500 uppercase">{mapName}</div>
                             {locs.map((loc) => (
-                              /* FIXED: Labels now strictly pure black for visibility */
                               <button key={loc.nodeId} onClick={() => handleSelectFromLocation(loc.mapId, loc.nodeId)} className={`w-full px-4 py-2 text-sm text-black font-medium text-left hover:bg-indigo-50 flex items-center gap-2 ${selectedFromNodeId === loc.nodeId ? "bg-indigo-50" : ""}`}>
                                 <MapPin size={12} className="text-gray-400" /> {loc.nodeName}
                               </button>

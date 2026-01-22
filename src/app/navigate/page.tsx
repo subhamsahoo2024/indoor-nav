@@ -134,7 +134,7 @@ function NavigatePageContent() {
 
               <div className="text-center mb-6 sm:mb-12 animate-fadeInUp delay-200">
                 <h1 className="font-[family-name:var(--font-orbitron)] text-3xl sm:text-5xl font-bold text-sky-200 mb-4 tracking-wide uppercase">
-                  NavX Smart Navigation
+                  NavX Smart Indoor Navigation
                 </h1>
                 <p className="font-[family-name:var(--font-space-grotesk)] text-sm sm:text-lg text-slate-400">
                   Find your way around the indoor spaces with NavX
@@ -170,7 +170,7 @@ function NavigatePageContent() {
         {/* Changed pb-1 to pb-4 and pt-2 to pt-4 to move credits further up from the bottom */}
         <div className="pt-4 pb-4 text-center relative z-10 px-4 sm:px-0 pr-20 sm:pr-0">
           <p className="text-slate-500 text-[10px] sm:text-sm font-medium tracking-wide leading-relaxed">
-            Developed by Sriram B, Subham Sahoo S, Thejas SB <br className="sm:hidden" /> @ Techsprint GDG CIT
+            Developed by Sriram B, Subham Sahoo S, Thejas SB <br className="sm:hidden" /> @ Techsprint GDGoC-CIT
           </p>
         </div>
       </main>

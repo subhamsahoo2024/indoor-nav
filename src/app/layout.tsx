@@ -26,8 +26,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "CIT MAP'S",
-  description: "Indoor navigation map for college and closed places",
+  title: "CIT NavX",
+  description: "Indoor navigation for CIT campus",
 };
 
 export default function RootLayout({
