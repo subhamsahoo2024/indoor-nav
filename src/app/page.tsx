@@ -14,18 +14,13 @@ export default function LandingPage() {
 
       {/* Content */}
       <div className="relative z-10 text-center max-w-4xl mx-auto">
-        {/* Logo Image */}
-        {/* STEP 1: Changed 'mb-8' to 'mb-2' to reduce space BELOW the logo */}
-        <div className="mb-4 flex justify-center">
-          
-          {/* STEP 2: Removed 'h-48' and 'sm:h-64' fixed heights. 
-             This removes empty space ABOVE/BELOW if your image is not perfectly square. */}
-          <div className="w-48 sm:w-64 relative">
+        {/* Logo */}
+        <div className="flex justify-center mb-8 animate-fadeInUp delay-100">
+          <div className="w-40 h-40 sm:w-48 sm:h-48">
             <img
-              src="/navx lg.png"
-              alt="NAVX LG"
-              /* Changed to 'h-auto' to fit content naturally */
-              className="w-full h-auto drop-shadow-2xl" 
+              src="/home-logo.png"
+              alt="Indoor Navigation Logo"
+              className="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-500"
             />
           </div>
         </div>

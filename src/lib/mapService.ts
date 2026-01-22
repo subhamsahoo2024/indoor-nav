@@ -79,7 +79,7 @@ export async function getAllMaps(): Promise<MapData[]> {
 
       if (!listResponse.ok) {
         throw new Error(
-          `Failed to fetch maps list: ${listResponse.statusText}`
+          `Failed to fetch maps list: ${listResponse.statusText}`,
         );
       }
 
@@ -94,7 +94,7 @@ export async function getAllMaps(): Promise<MapData[]> {
         listResult.data.map(async (mapMeta: { id: string }) => {
           const map = await getMap(mapMeta.id);
           return map;
-        })
+        }),
       );
 
       // Filter out any nulls and cache
@@ -168,18 +168,21 @@ export async function saveMap(mapData: MapData): Promise<MapData | null> {
  * Create a new map
  * @param id - Unique identifier for the map
  * @param name - Display name for the map
- * @param imageUrl - URL to the map image
+ * @param imageUrl - URL to the map image (for old maps in public folder)
+ * @param mapImage - Base64 encoded image (for new maps stored in MongoDB)
  * @returns Promise resolving to the created map or null on failure
  */
 export async function createMap(
   id: string,
   name: string,
-  imageUrl: string
+  imageUrl?: string,
+  mapImage?: string,
 ): Promise<MapData | null> {
   const newMap: MapData = {
     id,
     name,
-    imageUrl,
+    ...(imageUrl && { imageUrl }),
+    ...(mapImage && { mapImage }),
     nodes: [],
     adjacencyList: {},
   };
@@ -296,7 +299,7 @@ export async function getGlobalGraph(): Promise<GlobalGraph> {
  * @returns Object containing the node and its map, or null if not found
  */
 export async function findNodeGlobally(
-  nodeId: string
+  nodeId: string,
 ): Promise<{ node: Node; mapId: string } | null> {
   const allMaps = await getAllMaps();
 
@@ -339,7 +342,7 @@ export async function getRoomNodes(mapId: string): Promise<Node[]> {
  * @returns Array of matching nodes with their map IDs
  */
 export async function searchNodes(
-  searchTerm: string
+  searchTerm: string,
 ): Promise<Array<{ node: Node; mapId: string }>> {
   const allMaps = await getAllMaps();
   const results: Array<{ node: Node; mapId: string }> = [];
@@ -365,7 +368,7 @@ export async function searchNodes(
  */
 export async function getMapPath(
   startMapId: string,
-  endMapId: string
+  endMapId: string,
 ): Promise<string[] | null> {
   if (startMapId === endMapId) {
     return [startMapId];
@@ -411,12 +414,12 @@ export async function getMapPath(
  */
 export async function getGatewayConnection(
   fromMapId: string,
-  toMapId: string
+  toMapId: string,
 ): Promise<MapConnection | null> {
   const globalGraph = await getGlobalGraph();
 
   const connection = globalGraph.connectionDetails.find(
-    (c) => c.fromMapId === fromMapId && c.toMapId === toMapId
+    (c) => c.fromMapId === fromMapId && c.toMapId === toMapId,
   );
 
   return connection ?? null;
@@ -434,13 +437,14 @@ export async function validateGatewayConnections(): Promise<string[]> {
   for (const connection of globalGraph.connectionDetails) {
     const reverseExists = globalGraph.connectionDetails.some(
       (c) =>
-        c.fromMapId === connection.toMapId && c.toMapId === connection.fromMapId
+        c.fromMapId === connection.toMapId &&
+        c.toMapId === connection.fromMapId,
     );
 
     if (!reverseExists) {
       warnings.push(
         `One-way gateway: ${connection.fromMapId}:${connection.gatewayNodeId} -> ` +
-          `${connection.toMapId}:${connection.targetNodeId} has no return path`
+          `${connection.toMapId}:${connection.targetNodeId} has no return path`,
       );
     }
   }

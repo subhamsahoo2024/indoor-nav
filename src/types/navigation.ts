@@ -68,8 +68,10 @@ export interface MapData {
   id: string;
   /** Human-readable name for the map */
   name: string;
-  /** URL or path to the map image */
-  imageUrl: string;
+  /** URL or path to the map image (for old maps stored in public/) */
+  imageUrl?: string;
+  /** Base64 encoded map image (for new maps stored in MongoDB) */
+  mapImage?: string;
   /** Array of all nodes on this map */
   nodes: Node[];
   /** Adjacency list: NodeID -> Array of connected edges */
@@ -109,7 +111,7 @@ export interface GlobalGraph {
  * Validates that the node has type GATEWAY and gatewayConfig with non-empty values
  */
 export function isGatewayNode(
-  node: Node
+  node: Node,
 ): node is Node & { gatewayConfig: GatewayConfig } {
   return (
     node.type === "GATEWAY" &&

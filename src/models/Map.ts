@@ -31,7 +31,7 @@ const GatewayConfigSchema = new Schema(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -80,7 +80,7 @@ const NodeSchema = new Schema(
       required: false,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -99,7 +99,7 @@ const EdgeSchema = new Schema(
       min: 0,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -119,7 +119,15 @@ const MapSchema = new Schema(
     },
     imageUrl: {
       type: String,
-      required: true,
+      required: false,
+    },
+    /**
+     * Base64 encoded map image for new maps
+     * Stored directly in MongoDB (max ~12MB due to 16MB doc limit)
+     */
+    mapImage: {
+      type: String,
+      required: false,
     },
     nodes: {
       type: [NodeSchema],
@@ -139,7 +147,7 @@ const MapSchema = new Schema(
         // Convert Map to plain object for JSON serialization
         if (ret.adjacencyList instanceof Map) {
           ret.adjacencyList = Object.fromEntries(
-            ret.adjacencyList as Map<string, Edge[]>
+            ret.adjacencyList as Map<string, Edge[]>,
           );
         }
         // Remove mongoose-specific fields
@@ -153,7 +161,7 @@ const MapSchema = new Schema(
       transform: (_doc, ret: Record<string, unknown>) => {
         if (ret.adjacencyList instanceof Map) {
           ret.adjacencyList = Object.fromEntries(
-            ret.adjacencyList as Map<string, Edge[]>
+            ret.adjacencyList as Map<string, Edge[]>,
           );
         }
         delete ret._id;
@@ -161,7 +169,7 @@ const MapSchema = new Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 /**
@@ -180,6 +188,7 @@ MapSchema.methods.toMapData = function (): MapData {
     id: obj.id,
     name: obj.name,
     imageUrl: obj.imageUrl,
+    mapImage: obj.mapImage,
     nodes: obj.nodes,
     adjacencyList: obj.adjacencyList,
   };
@@ -198,7 +207,7 @@ export default MapModel;
  * Helper function to convert plain object adjacencyList to Map
  */
 export function toMongooseAdjacencyList(
-  adjacencyList: Record<string, Edge[]>
+  adjacencyList: Record<string, Edge[]>,
 ): Map<string, Edge[]> {
   return new Map(Object.entries(adjacencyList));
 }
@@ -207,7 +216,7 @@ export function toMongooseAdjacencyList(
  * Helper function to convert Map adjacencyList to plain object
  */
 export function fromMongooseAdjacencyList(
-  adjacencyList: Map<string, Edge[]>
+  adjacencyList: Map<string, Edge[]>,
 ): Record<string, Edge[]> {
   return Object.fromEntries(adjacencyList);
 }

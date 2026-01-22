@@ -1,6 +1,6 @@
 /**
- * NextAuth.js Middleware for Route Protection
- * Location: middleware.ts (ROOT directory - outside src/ and app/)
+ * NextAuth.js proxy for Route Protection
+ * Location: proxy.ts (ROOT directory - outside src/ and app/)
  *
  * IMPORTANT: This file MUST be in the project root directory
  * It protects all /admin routes by requiring authentication
@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
