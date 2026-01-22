@@ -289,7 +289,7 @@ export default function IndoorNavigation({
 
   // Playback control state
   const [isPaused, setIsPaused] = useState(false);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1); // 1x or 2x
+  const [speedMultiplier, setSpeedMultiplier] = useState(1); // 1x or 3x
   const pausedProgressRef = useRef(0); // Store progress when paused
   const startTimeRef = useRef<number | null>(null);
   const baseDurationRef = useRef(0);
@@ -463,7 +463,7 @@ export default function IndoorNavigation({
 
     setIsAnimating(true);
     const pathLength = calculatePathLength(pathPixelCoords);
-    const baseDuration = pathLength / 100; // pixels per second
+    const baseDuration = pathLength / 20; // pixels per second (human walking speed)
     baseDurationRef.current = baseDuration;
     const duration = baseDuration / (animationSpeed * speedMultiplier);
 
@@ -628,7 +628,7 @@ export default function IndoorNavigation({
   }, []);
 
   const handleToggleSpeed = useCallback(() => {
-    setSpeedMultiplier((prev) => (prev === 1 ? 2 : 1));
+    setSpeedMultiplier((prev) => (prev === 1 ? 3 : 1));
   }, []);
 
   // ============================================================================
@@ -1013,14 +1013,14 @@ export default function IndoorNavigation({
               <button
                 onClick={handleToggleSpeed}
                 className={`flex items-center gap-1 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
-                  speedMultiplier === 2
+                  speedMultiplier === 3
                     ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
                 title="Toggle speed"
               >
                 <Gauge className="w-4 h-4" />
-                <span>{speedMultiplier}x</span>
+                <span>{speedMultiplier === 3 ? '2' : '1'}x</span>
               </button>
             </div>
           </motion.div>
